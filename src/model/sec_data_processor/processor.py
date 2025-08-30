@@ -1,14 +1,11 @@
 from model.utils.http_client import HttpClient
-from cache import FileCache
-from ticker_service import TickerMappingService
+from model.ticker_retriever.cache import FileCache
+from model.ticker_retriever.ticker_service import TickerMappingService
 from sec_service import SECDataService
-from models import Filing, FinancialRecord, CompanyProfile, GrowthMetrics, FinancialAlert
+from model.utils.models import Filing, FinancialRecord, CompanyProfile, GrowthMetrics, FinancialAlert
 import pandas as pd
-from typing import List, Dict, Optional, Tuple
-from notifications import Notifier
-from datetime import datetime, timedelta
-import statistics
-
+from typing import List, Dict, Optional
+from model.notifier.notifications import Notifier
 
 class SECDataProcessor:
     def __init__(self, user_agent: str, notifiers: List[Notifier] = None):
@@ -206,4 +203,4 @@ class SECDataProcessor:
             return summary
             
         except Exception as e:
-            return {'error': f'Error
+            return {'error': f'Error occurred while generating financial summary for {ticker}: {str(e)}'}

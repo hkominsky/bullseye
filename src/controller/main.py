@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
-from processor import SECDataProcessor
-from notifications import ConsoleNotifier, EmailNotifier
+from src.model.sec_data_processor.processor import SECDataProcessor
+from src.model.notifier.notifications import ConsoleNotifier, EmailNotifier
 
 def main():
     load_dotenv()

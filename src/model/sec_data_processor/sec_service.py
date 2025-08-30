@@ -2,9 +2,7 @@ from typing import List, Dict, Optional, Any
 from model.utils.http_client import HttpClient
 from model.utils.models import Filing, FinancialRecord, CompanyProfile
 import requests
-import re
 from datetime import datetime
-
 
 class SECDataService:
     SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{}.json"

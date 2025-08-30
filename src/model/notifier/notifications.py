@@ -1,5 +1,3 @@
-from typing import List
-
 class Notifier:
     """Base notifier interface."""
     def send(self, message: str):

@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from http_client import HttpClient
+from model.utils.http_client import HttpClient
 from cache import CacheInterface
 
 class TickerMappingService:
