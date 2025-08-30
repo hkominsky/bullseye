@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Any
-from model.utils.http_client import HttpClient
-from model.utils.models import Filing, FinancialRecord, CompanyProfile
+from src.model.utils.http_client import HttpClient
+from src.model.utils.models import Filing, FinancialRecord, CompanyProfile
 import requests
 from datetime import datetime
 

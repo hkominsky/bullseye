@@ -1,11 +1,11 @@
-from model.utils.http_client import HttpClient
-from model.ticker_retriever.cache import FileCache
-from model.ticker_retriever.ticker_service import TickerMappingService
-from sec_service import SECDataService
-from model.utils.models import Filing, FinancialRecord, CompanyProfile, GrowthMetrics, FinancialAlert
+from src.model.utils.http_client import HttpClient
+from src.model.ticker_retriever.cache import FileCache
+from src.model.ticker_retriever.ticker_service import TickerMappingService
+from src.model.sec_data_processor.sec_service import SECDataService
+from src.model.utils.models import Filing, FinancialRecord, CompanyProfile, GrowthMetrics, FinancialAlert
 import pandas as pd
 from typing import List, Dict, Optional
-from model.notifier.notifications import Notifier
+from src.model.notifier.notifications import Notifier
 
 class SECDataProcessor:
     def __init__(self, user_agent: str, notifiers: List[Notifier] = None):

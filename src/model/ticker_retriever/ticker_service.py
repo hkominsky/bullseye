@@ -1,6 +1,6 @@
 from typing import Dict, Any
-from model.utils.http_client import HttpClient
-from cache import CacheInterface
+from src.model.utils.http_client import HttpClient
+from src.model.ticker_retriever.cache import CacheInterface
 
 class TickerMappingService:
     SEC_TICKER_URL = "https://www.sec.gov/files/company_tickers.json"

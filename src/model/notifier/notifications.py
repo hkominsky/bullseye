@@ -8,7 +8,7 @@ class EmailNotifier(Notifier):
         self.email = email
     
     def send(self, message: str):
-        # placeholder for actual email logic (SMTP, SendGrid, etc.)
+        # TODO: placeholder for actual email logic
         print(f"[EMAIL to {self.email}] {message}")
 
 class ConsoleNotifier(Notifier):
