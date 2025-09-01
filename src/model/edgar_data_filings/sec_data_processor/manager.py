@@ -2,11 +2,11 @@ from typing import List, Dict
 import pandas as pd
 
 from src.model.utils.http_client import HttpClient
-from src.model.ticker_retriever.cache import FileCache
-from src.model.ticker_retriever.ticker_service import TickerMappingService
-from src.model.sec_data_processor.extractor import SECDataExtractor
-from src.model.sec_data_processor.cleaner import SECDataCleaner
-from src.model.sec_data_processor.processor import SECDataProcessor
+from src.model.edgar_data_filings.ticker_retriever.cache import FileCache
+from src.model.edgar_data_filings.ticker_retriever.ticker_service import TickerMappingService
+from src.model.edgar_data_filings.sec_data_processor.extractor import SECDataExtractor
+from src.model.edgar_data_filings.sec_data_processor.cleaner import SECDataCleaner
+from src.model.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
 from src.model.utils.models import FinancialRecord
 
 

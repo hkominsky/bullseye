@@ -1,7 +1,8 @@
 import sys
 from dotenv import load_dotenv
-from src.model.sec_data_processor.manager import SECDataManager
+from src.model.edgar_data_filings.sec_data_processor.manager import SECDataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
+from src.model.notifier.notifications import EmailNotifier
 
 
 def main():
@@ -69,7 +70,15 @@ if __name__ == "__main__":
     
     if df is not None and not df.empty:
         # Save DataFrame to CSV
-        output_file = "src/model/sec_data_processor/financial_data.csv"
+        output_file = "src/model/edgar_data_filings/sec_data_processor/financial_data.csv"
         df.to_csv(output_file, index=False)
         
         # TODO: add SQL storage and notifiers
+        notifier = EmailNotifier()
+        result = notifier.send_email(df)
+
+        if result[0]:
+            status, body, headers = result
+            print(f"Email sent! Status code: {status}")
+        else:
+            print("Email failed to send.")

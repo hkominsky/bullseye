@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import os
 from src.model.utils.http_client import HttpClient
-from src.model.ticker_retriever.cache import CacheInterface
+from src.model.edgar_data_filings.ticker_retriever.cache import CacheInterface
 
 
 class TickerMappingService:
@@ -15,7 +15,7 @@ class TickerMappingService:
     """
 
     SEC_TICKER_URL = "https://www.sec.gov/files/company_tickers.json"
-    DEFAULT_CACHE_FILE = os.path.join("src", "model", "ticker_retriever", "company_tickers.json")
+    DEFAULT_CACHE_FILE = os.path.join("src", "model", "edgar_data_filings", "ticker_retriever", "company_tickers.json")
     DEFAULT_REFRESH_DAYS = 30
 
     def __init__(self, http_client: HttpClient, cache: CacheInterface):
@@ -41,8 +41,7 @@ class TickerMappingService:
         Otherwise, the mapping is read directly from the local cache.
 
         Args:
-            cache_file (str): Path to the cached ticker file. Defaults to
-                              `src/model/ticker_retriever/company_tickers.json`.
+            cache_file (str): Path to the cached ticker file.
             refresh_days (int): Number of days before cached data is considered expired.
 
         Returns:
