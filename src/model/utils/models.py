@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
-
 
 @dataclass
 class Filing:
@@ -32,7 +31,6 @@ class FinancialRecord:
     net_income: Optional[float] = None
     research_and_development: Optional[float] = None
     selling_general_admin: Optional[float] = None
-    interest_expense: Optional[float] = None
     
     # Balance Sheet
     total_assets: Optional[float] = None
@@ -56,6 +54,17 @@ class FinancialRecord:
     shares_outstanding: Optional[float] = None
     weighted_average_shares: Optional[float] = None
     
+    # Enhanced Financial Health Metrics
+    interest_coverage_ratio: Optional[float] = None
+    working_capital: Optional[float] = None
+    days_sales_outstanding: Optional[float] = None
+    asset_turnover: Optional[float] = None
+    inventory_turnover: Optional[float] = None
+    receivables_turnover: Optional[float] = None
+    debt_to_ebitda: Optional[float] = None
+    altman_z_score: Optional[float] = None
+    piotroski_f_score: Optional[float] = None
+    
     # Calculated Metrics (populated by processor)
     gross_margin: Optional[float] = None
     operating_margin: Optional[float] = None
@@ -73,6 +82,7 @@ class FinancialRecord:
         self._calculate_margins()
         self._calculate_ratios()
         self._calculate_per_share_metrics()
+        self._calculate_advanced_metrics()
     
     def _calculate_margins(self):
         """Calculate profit margins"""
@@ -96,6 +106,10 @@ class FinancialRecord:
                 quick_assets -= self.inventory
             self.quick_ratio = quick_assets / self.current_liabilities
         
+        # Working Capital
+        if self.current_assets and self.current_liabilities:
+            self.working_capital = self.current_assets - self.current_liabilities
+        
         # Leverage ratios
         if self.total_liabilities and self.shareholders_equity and self.shareholders_equity != 0:
             self.debt_to_equity = self.total_liabilities / self.shareholders_equity
@@ -115,21 +129,26 @@ class FinancialRecord:
         """Calculate per-share metrics"""
         if self.net_income and self.weighted_average_shares and self.weighted_average_shares != 0:
             self.earnings_per_share = self.net_income / self.weighted_average_shares
-
-
-@dataclass
-class CompanyProfile:
-    ticker: str
-    cik: str
-    company_name: str
-    sic_code: Optional[str] = None
-    industry: Optional[str] = None
-    sector: Optional[str] = None
-    fiscal_year_end: Optional[str] = None
-    latest_filing_date: Optional[str] = None
-    exchange: Optional[str] = None
-    business_address: Optional[Dict[str, str]] = None
-
+    
+    def _calculate_advanced_metrics(self):
+        """Calculate advanced financial health metrics"""
+        
+        # Asset Turnover
+        if self.revenue and self.total_assets and self.total_assets > 0:
+            self.asset_turnover = self.revenue / self.total_assets
+        
+        # Inventory Turnover
+        if self.cost_of_revenue and self.inventory and self.inventory > 0:
+            self.inventory_turnover = self.cost_of_revenue / self.inventory
+        
+        # Receivables Turnover & DSO
+        if self.revenue and self.accounts_receivable and self.accounts_receivable > 0:
+            self.receivables_turnover = self.revenue / self.accounts_receivable
+            self.days_sales_outstanding = 365 / self.receivables_turnover
+        
+        # Debt to EBITDA (approximation using operating income)
+        if self.operating_income and self.total_liabilities and self.operating_income > 0:
+            self.debt_to_ebitda = self.total_liabilities / self.operating_income
 
 @dataclass
 class GrowthMetrics:
@@ -142,34 +161,15 @@ class GrowthMetrics:
     net_income_growth_yoy: Optional[float] = None
     net_income_growth_qoq: Optional[float] = None
     operating_income_growth_yoy: Optional[float] = None
+    operating_income_growth_qoq: Optional[float] = None
     eps_growth_yoy: Optional[float] = None
+    
+    # Advanced growth metrics
+    revenue_growth_acceleration: Optional[float] = None
+    margin_expansion_rate: Optional[float] = None
+    organic_growth_rate: Optional[float] = None
     
     # Trend indicators
     revenue_trend: Optional[str] = None  # "increasing", "decreasing", "stable"
     profitability_trend: Optional[str] = None
-
-
-@dataclass
-class FinancialAlert:
-    ticker: str
-    alert_type: str
-    severity: str  # "low", "medium", "high", "critical"
-    message: str
-    metric_value: Optional[float] = None
-    threshold_value: Optional[float] = None
-    date_triggered: Optional[str] = None
-    
-    def __post_init__(self):
-        if not self.date_triggered:
-            self.date_triggered = datetime.now().isoformat()
-
-
-@dataclass
-class IndustryBenchmark:
-    industry_code: str
-    metric_name: str
-    median_value: float
-    percentile_25: float
-    percentile_75: float
-    sample_size: int
-    period: str  # "Q1 2024", "FY 2023", etc.
+    efficiency_trend: Optional[str] = None
