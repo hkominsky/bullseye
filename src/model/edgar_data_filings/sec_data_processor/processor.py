@@ -38,6 +38,45 @@ class SECDataProcessor:
         
         return pd.DataFrame(df_records)
     
+    def create_split_dataframes(self, financial_data: dict[str, list[FinancialRecord]]) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Create two separate DataFrames: one with raw financial data and one with calculated metrics.
+        
+        Args:
+            financial_data (dict[str, list[FinancialRecord]]): Dictionary mapping ticker symbols to lists of FinancialRecord objects.
+            
+        Returns:
+            tuple[pd.DataFrame, pd.DataFrame]: Tuple containing (raw_data_df, calculated_metrics_df)
+        """
+        # Use existing method to create the full DataFrame with proper column order
+        full_df = self.create_financial_dataframe(financial_data)
+        
+        if full_df.empty:
+            return pd.DataFrame(), pd.DataFrame()
+        
+        # Define which fields are calculated metrics (everything else is considered raw)
+        calculated_fields = {
+            'working_capital', 'free_cash_flow', 'gross_margin', 'operating_margin',
+            'net_margin', 'current_ratio', 'quick_ratio', 'debt_to_equity',
+            'return_on_assets', 'return_on_equity', 'earnings_per_share',
+            'asset_turnover', 'altman_z_score', 'piotroski_f_score'
+        }
+        
+        # Split columns dynamically
+        all_columns = full_df.columns.tolist()
+        
+        # Raw columns: all columns except calculated ones
+        raw_columns = [col for col in all_columns if col not in calculated_fields]
+        
+        # Metrics columns: ticker, period (for identification) + calculated fields
+        metrics_columns = ['ticker', 'period'] + [col for col in all_columns if col in calculated_fields]
+        
+        # Create split DataFrames preserving original column order
+        raw_df = full_df[raw_columns].copy()
+        metrics_df = full_df[metrics_columns].copy()
+        
+        return raw_df, metrics_df
+    
     def calculate_growth_metrics(self, tickers: list[str], 
                                financial_data: dict[str, list[FinancialRecord]]) -> dict[str, list[GrowthMetrics]]:
         """
@@ -486,7 +525,6 @@ class SECDataProcessor:
             'current_ratio': record.current_ratio,
             'debt_to_equity': record.debt_to_equity,
             'return_on_equity': record.return_on_equity,
-            'interest_coverage_ratio': getattr(record, 'interest_coverage_ratio', None),
             'altman_z_score': record.altman_z_score
         }
     

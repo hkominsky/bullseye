@@ -72,3 +72,22 @@ class SECDataManager:
         df = self.processor.create_financial_dataframe(financial_data)
         cleaned_df = self.cleaner.clean_dataframe(df)
         return cleaned_df
+
+    def get_split_financial_dataframes(self, tickers: List[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Get financial data for tickers split into raw data and calculated metrics DataFrames.
+        
+        Args:
+            tickers (List[str]): A list of stock ticker symbols.
+            
+        Returns:
+            tuple[pd.DataFrame, pd.DataFrame]: Tuple containing (raw_data_df, calculated_metrics_df)
+        """
+        financial_data = self.get_comprehensive_financial_data(tickers)
+        raw_df, metrics_df = self.processor.create_split_dataframes(financial_data)
+        
+        # Clean both DataFrames
+        cleaned_raw_df = self.cleaner.clean_dataframe(raw_df)
+        cleaned_metrics_df = self.cleaner.clean_dataframe(metrics_df)
+        
+        return cleaned_raw_df, cleaned_metrics_df

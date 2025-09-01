@@ -1,2 +1,5 @@
 .env
 sec_data_processing.logs
+calculated_metrics.csv
+raw_financial_data.csv
+company_tickers.csv

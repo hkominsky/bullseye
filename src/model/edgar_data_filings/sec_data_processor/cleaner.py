@@ -67,23 +67,32 @@ class SECDataCleaner:
         
         imputed_records = records.copy()
         
-        for year, year_records in fiscal_years.items():
+        for fiscal_year, year_records in fiscal_years.items():
             annual_record = None
             quarterly_records = []
             incomplete_records = []
             
             for record in year_records:
-                if record.form_type == '10-K' and record.period in ['FY', 'Q3', 'Q4']:
+                period_type = self._extract_period_type(record.period)
+                
+                # Check for annual records
+                if (record.form_type == '10-K' and 
+                    period_type in ['FY', 'Q3', 'Q4']):
                     annual_record = record
-                elif record.form_type == '10-Q' and record.period in ['Q1', 'Q2', 'Q3', 'Q4']:
+                # Check for quarterly records
+                elif (record.form_type == '10-Q' and 
+                      period_type in ['Q1', 'Q2', 'Q3', 'Q4']):
                     quarterly_records.append(record)
-                    if record.revenue is None and record.net_income is None and record.operating_income is None:
+                    if (record.revenue is None and 
+                        record.net_income is None and 
+                        record.operating_income is None):
                         incomplete_records.append(record)
             
             if annual_record and len(quarterly_records) >= 3 and len(incomplete_records) > 0:
                 for incomplete_record in incomplete_records:
                     complete_quarterly_records = [
-                        q for q in quarterly_records if q != incomplete_record and q.revenue is not None
+                        q for q in quarterly_records 
+                        if q != incomplete_record and q.revenue is not None
                     ]
                     complete_quarterly_records.sort(key=lambda x: x.date)
                                         
@@ -116,6 +125,55 @@ class SECDataCleaner:
                             setattr(incomplete_record, field, imputed_value)
                                                         
         return imputed_records
+    
+    def _extract_period_type(self, period: str) -> str:
+        """
+        Extract the period type from a period string that may include year.
+        
+        Args:
+            period (str): Period string (e.g., "2024 Q1", "Q1", "2024 FY", "FY").
+        
+        Returns:
+            str: Period type (Q1, Q2, Q3, Q4, FY, or original if no match).
+        """
+        if not period:
+            return ""
+        
+        # Handle year-prefixed periods (e.g., "2024 Q1", "2024 FY")
+        if ' ' in period:
+            parts = period.split()
+            if len(parts) >= 2:
+                # Return the last part which should be the period type
+                return parts[-1]
+        
+        # Handle direct period strings (e.g., "Q1", "FY")
+        return period
+    
+    def _is_annual_period(self, period: str) -> bool:
+        """
+        Check if a period represents an annual/full-year period.
+        
+        Args:
+            period (str): Period string.
+        
+        Returns:
+            bool: True if annual period, False otherwise.
+        """
+        period_type = self._extract_period_type(period)
+        return period_type in ['FY', 'Q4']  # Some companies use Q4 for annual
+    
+    def _is_quarterly_period(self, period: str) -> bool:
+        """
+        Check if a period represents a quarterly period.
+        
+        Args:
+            period (str): Period string.
+        
+        Returns:
+            bool: True if quarterly period, False otherwise.
+        """
+        period_type = self._extract_period_type(period)
+        return period_type in ['Q1', 'Q2', 'Q3', 'Q4']
     
     def clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """

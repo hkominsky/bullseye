@@ -47,7 +47,7 @@ class EmailNotifier:
    def _format_column_name(self, column_name):
        """
        Converts snake_case column names to Title Case.
-       Examples: form_type -> Form Type, company_name -> Company Name
+       Examples: gross_profit -> Gross Profit
        """
        return str(column_name).replace('_', ' ').title()
    
@@ -132,40 +132,74 @@ class EmailNotifier:
        except (ValueError, TypeError):
            return value
 
-   def build_email_content(self, df: pd.DataFrame) -> str:
+   def build_email_content(self, raw_df: pd.DataFrame, metrics_df: pd.DataFrame) -> str:
        """
-       Converts a DataFrame to an HTML table for the email body.
+       Converts multiple DataFrames to HTML tables for the email body.
+       
+       Args:
+           raw_df (pd.DataFrame): DataFrame containing raw financial data
+           metrics_df (pd.DataFrame): DataFrame containing calculated metrics
+           
+       Returns:
+           str: HTML content with both tables
        """
-       # Format the DataFrame before converting to HTML
-       df_formatted = self.format_dataframe(df)
-       html_table = df_formatted.to_html(index=False, border=0, justify="center")
+       # Format both DataFrames
+       raw_df_formatted = self.format_dataframe(raw_df)
+       metrics_df_formatted = self.format_dataframe(metrics_df)
+       
+       # Convert to HTML tables
+       raw_html_table = raw_df_formatted.to_html(index=False, border=0, justify="center", table_id="raw-data-table")
+       metrics_html_table = metrics_df_formatted.to_html(index=False, border=0, justify="center", table_id="metrics-table")
        
        html_content = f"""
        <html>
        <head>
        <style>
-       table {{ border-collapse: collapse; width: 100%; }}
+       table {{ border-collapse: collapse; width: 100%; margin-bottom: 30px; }}
        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: center; }}
        th {{ background-color: #f2f2f2; }}
        .numeric {{ text-align: right; }}
+       .section-header {{ 
+           color: #2c3e50; 
+           border-bottom: 2px solid #3498db; 
+           padding-bottom: 10px; 
+           margin-top: 20px; 
+           margin-bottom: 15px; 
+       }}
+       #raw-data-table {{ margin-bottom: 40px; }}
+       #metrics-table {{ margin-top: 20px; }}
        </style>
        </head>
-       <body>
-       <h2>SEC Financial Data Report</h2>
-       {html_table}
-       <p>Generated automatically by your Python pipeline.</p>
+       <body>       
+       
+       <h3 class="section-header">Raw Data</h3>
+       {raw_html_table}
+       
+       <h3 class="section-header">Calculated Ratios / Metrics</h3>
+       {metrics_html_table}
+       
        </body>
        </html>
        """
        return html_content
 
-   def send_email(self, df: pd.DataFrame, subject="SEC Financial Report", recipient=None):
+   def send_email(self, raw_df: pd.DataFrame, metrics_df: pd.DataFrame, 
+                                 subject="SEC Financial Report - Raw Data & Metrics", recipient=None):
        """
-       Sends an email using SendGrid Web API with proper error handling.
-       Returns a tuple: (status_code, response_body, response_headers)
+       Sends an email with two DataFrames using SendGrid Web API.
+       
+       Args:
+           raw_df (pd.DataFrame): DataFrame containing raw financial data
+           metrics_df (pd.DataFrame): DataFrame containing calculated metrics
+           subject (str): Email subject line
+           recipient (str, optional): Recipient email address
+           
+       Returns:
+           tuple: (status_code, response_body, response_headers)
        """
        to_email = recipient if recipient else self.default_recipient
-       html_content = self.build_email_content(df)
+       filtered_df = raw_df.drop(columns=["date", "form_type"])
+       html_content = self.build_email_content(filtered_df, metrics_df)
 
        message = Mail(
            from_email=self.sender,

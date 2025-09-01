@@ -4,21 +4,21 @@ from src.model.edgar_data_filings.sec_data_processor.manager import SECDataManag
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.notifier.notifications import EmailNotifier
 
-
 def main():
     """
     Main function to process SEC financial data for specified stocks.
     
     Loads environment variables, validates required configuration,
-    initializes the SEC data manager, and retrieves financial data.
+    initializes the SEC data manager, and retrieves financial data split
+    into raw data and calculated metrics.
     
     Returns:
-        pd.DataFrame: DataFrame containing financial data for all specified stocks,
-                     or empty DataFrame if no data retrieved.
-                     
+        tuple[pd.DataFrame, pd.DataFrame]: Tuple containing (raw_data_df, calculated_metrics_df)
+                     or (empty DataFrame, empty DataFrame) if no data retrieved.
+                      
     Raises:
         SystemExit: If required environment variables are missing or invalid.
-        
+         
     Note:
         Requires the following environment variables:
         - USER_EMAIL: Email address for SEC API identification
@@ -27,58 +27,70 @@ def main():
     """
     load_dotenv()
     required_vars = ["USER_EMAIL", "STOCKS", "USER_AGENT"]
-
+    
     try:
         env = EnvValidation.validate_env_vars(required_vars)
         STOCKS = EnvValidation.parse_stocks(env["STOCKS"])
     except EnvValidationError as e:
         print(f"Error: {e}")
         sys.exit(1)
-
-    manager = SECDataManager(env["USER_AGENT"])
-    df = manager.get_financial_dataframe(STOCKS)
-
-    if df.empty:
-        print("No financial data retrieved.")
-        return df
     
-    return df
-
+    manager = SECDataManager(env["USER_AGENT"])
+    raw_df, metrics_df = manager.get_split_financial_dataframes(STOCKS)
+    
+    if raw_df.empty and metrics_df.empty:
+        print("No financial data retrieved.")
+        return raw_df, metrics_df
+        
+    return raw_df, metrics_df
 
 if __name__ == "__main__":
     """
     Entry point for the SEC data processing script.
     
-    Executes the main data retrieval process and saves results to CSV file.
-    Handles the complete workflow from environment setup to data storage.
+    Executes the main data retrieval process, saves results to CSV files,
+    and sends email with both raw data and calculated metrics.
+    Handles the complete workflow from environment setup to data storage and notification.
     
     Process:
-    1. Execute main() to retrieve financial data
+    1. Execute main() to retrieve split financial data
     2. Validate data availability
-    3. Save DataFrame to CSV file for persistence
-    4. Print completion status
+    3. Save both DataFrames to separate CSV files for persistence
+    4. Send email with both datasets
+    5. Print completion status
     
     Output:
-        Creates 'financial_data.csv' in src/model/sec_data_processor/ directory
-        containing all retrieved financial data.
-        
+        Creates two CSV files in src/model/sec_data_processor/ directory:
+        - 'raw_financial_data.csv': Contains raw financial data
+        - 'calculated_metrics.csv': Contains calculated financial metrics
+             
     Future enhancements:
         - SQL database storage implementation
-        - Notification system for data updates
+        - Advanced notification system configurations
     """
-    df = main()
-    
-    if df is not None and not df.empty:
-        # Save DataFrame to CSV
-        output_file = "src/model/edgar_data_filings/sec_data_processor/financial_data.csv"
-        df.to_csv(output_file, index=False)
+    raw_df, metrics_df = main()
         
-        # TODO: add SQL storage and notifiers
+    if (raw_df is not None and not raw_df.empty) or (metrics_df is not None and not metrics_df.empty):
+        # Save DataFrames to separate CSV files
+        raw_output_file = "src/model/edgar_data_filings/sec_data_processor/raw_financial_data.csv"
+        metrics_output_file = "src/model/edgar_data_filings/sec_data_processor/calculated_metrics.csv"
+        
+        if not raw_df.empty:
+            raw_df.to_csv(raw_output_file, index=False)
+            print(f"Raw financial data saved to {raw_output_file}")
+            
+        if not metrics_df.empty:
+            metrics_df.to_csv(metrics_output_file, index=False)
+            print(f"Calculated metrics saved to {metrics_output_file}")
+        
+        # Send email with both DataFrames
         notifier = EmailNotifier()
-        result = notifier.send_email(df)
-
+        result = notifier.send_email(raw_df, metrics_df)
+        
         if result[0]:
             status, body, headers = result
-            print(f"Email sent! Status code: {status}")
+            print(f"Email sent with split data! Status code: {status}")
         else:
             print("Email failed to send.")
+    else:
+        print("No data to save or send.")

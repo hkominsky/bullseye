@@ -55,7 +55,6 @@ class FinancialRecord:
     weighted_average_shares: Optional[float] = None
     
     # Enhanced Financial Health Metrics
-    interest_coverage_ratio: Optional[float] = None
     working_capital: Optional[float] = None
     days_sales_outstanding: Optional[float] = None
     asset_turnover: Optional[float] = None

@@ -345,39 +345,97 @@ class SECDataExtractor:
             frame (str, optional): Frame label provided by SEC.
 
         Returns:
-            str: Reporting period (e.g., Q1, Q2, Q3, Q4, FY, Unknown).
+            str: Reporting period with year (e.g., "2024 Q1", "2024 Q2", "2024 FY", "Unknown").
         """
         try:
             date_obj = datetime.fromisoformat(end_date)
-            month = date_obj.month
-
-            if frame:
-                if 'Q1' in frame:
-                    return "Q1"
-                elif 'Q2' in frame:
-                    return "Q2"
-                elif 'Q3' in frame:
-                    return "Q3"
-                elif 'Q4' in frame:
-                    return "Q4"
-                elif 'CY' in frame and 'Q' not in frame:
-                    return "FY"
-
-            if form_type == "10-K":
-                return "FY"
-            elif form_type == "10-Q":
-                return {
-                    1: "Q4", 2: "Q4", 3: "Q1", 4: "Q1", 5: "Q1", 6: "Q2",
-                    7: "Q2", 8: "Q2", 9: "Q3", 10: "Q3", 11: "Q3", 12: "Q4"
-                }.get(month, "Unknown")
-
-            if month in [1, 2, 3]:
-                return "Q1"
-            elif month in [4, 5, 6]:
-                return "Q2"
-            elif month in [7, 8, 9]:
-                return "Q3"
-            return "Q4"
-
+            year = date_obj.year
+            
+            # Try to extract period from frame first
+            frame_period = self._extract_period_from_frame(frame)
+            if frame_period:
+                return f"{year} {frame_period}"
+            
+            # Fall back to form type and date-based logic
+            period = self._determine_period_from_form_and_date(form_type, date_obj.month)
+            return f"{year} {period}" if period != "Unknown" else "Unknown"
+            
         except Exception:
             return "Unknown"
+
+    def _extract_period_from_frame(self, frame: str) -> str:
+        """
+        Extract period information from SEC frame string.
+        
+        Args:
+            frame (str): Frame label from SEC data.
+            
+        Returns:
+            str: Period string (Q1, Q2, Q3, Q4, FY) or empty string if not found.
+        """
+        if not frame:
+            return ""
+        
+        frame_upper = frame.upper()
+        
+        for quarter in ['Q1', 'Q2', 'Q3', 'Q4']:
+            if quarter in frame_upper:
+                return quarter
+        
+        if 'CY' in frame_upper and 'Q' not in frame_upper:
+            return "FY"
+        
+        return ""
+
+    def _determine_period_from_form_and_date(self, form_type: str, month: int) -> str:
+        """
+        Determine period based on SEC form type and month.
+        
+        Args:
+            form_type (str): SEC form type (e.g., "10-K", "10-Q").
+            month (int): Month number (1-12).
+            
+        Returns:
+            str: Period string (Q1, Q2, Q3, Q4, FY, Unknown).
+        """
+        if form_type == "10-K":
+            return "FY"
+        elif form_type == "10-Q":
+            return self._get_quarter_from_10q_month(month)
+        else:
+            return self._get_quarter_from_month(month)
+
+    def _get_quarter_from_10q_month(self, month: int) -> str:
+        """
+        Map month to quarter for 10-Q filings (which have specific timing rules).
+        
+        Args:
+            month (int): Month number (1-12).
+            
+        Returns:
+            str: Quarter string (Q1, Q2, Q3, Q4, Unknown).
+        """
+        month_to_quarter = {
+            1: "Q4", 2: "Q4", 3: "Q1", 4: "Q1", 5: "Q1", 6: "Q2",
+            7: "Q2", 8: "Q2", 9: "Q3", 10: "Q3", 11: "Q3", 12: "Q4"
+        }
+        return month_to_quarter.get(month, "Unknown")
+
+    def _get_quarter_from_month(self, month: int) -> str:
+        """
+        Map month to standard calendar quarter.
+        
+        Args:
+            month (int): Month number (1-12).
+            
+        Returns:
+            str: Quarter string (Q1, Q2, Q3, Q4).
+        """
+        if month in [1, 2, 3]:
+            return "Q1"
+        elif month in [4, 5, 6]:
+            return "Q2"
+        elif month in [7, 8, 9]:
+            return "Q3"
+        else:  # month in [10, 11, 12]
+            return "Q4"
