@@ -48,30 +48,14 @@ if __name__ == "__main__":
     """
     Entry point for the SEC data processing script.
     
-    Executes the main data retrieval process, saves results to CSV files,
-    and sends email with both raw data and calculated metrics.
-    Handles the complete workflow from environment setup to data storage and notification.
-    
-    Process:
-    1. Execute main() to retrieve split financial data
-    2. Validate data availability
-    3. Save both DataFrames to separate CSV files for persistence
-    4. Send email with both datasets
-    5. Print completion status
-    
     Output:
         Creates two CSV files in src/model/sec_data_processor/ directory:
         - 'raw_financial_data.csv': Contains raw financial data
         - 'calculated_metrics.csv': Contains calculated financial metrics
-             
-    Future enhancements:
-        - SQL database storage implementation
-        - Advanced notification system configurations
     """
     raw_df, metrics_df = main()
         
     if (raw_df is not None and not raw_df.empty) or (metrics_df is not None and not metrics_df.empty):
-        # Save DataFrames to separate CSV files
         raw_output_file = "src/model/edgar_data_filings/sec_data_processor/raw_financial_data.csv"
         metrics_output_file = "src/model/edgar_data_filings/sec_data_processor/calculated_metrics.csv"
         
@@ -81,7 +65,6 @@ if __name__ == "__main__":
         if not metrics_df.empty:
             metrics_df.to_csv(metrics_output_file, index=False)
         
-        # Send email with both DataFrames
         notifier = EmailNotifier()
         result = notifier.send_email(raw_df, metrics_df)
         
