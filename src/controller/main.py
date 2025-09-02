@@ -77,11 +77,9 @@ if __name__ == "__main__":
         
         if not raw_df.empty:
             raw_df.to_csv(raw_output_file, index=False)
-            print(f"Raw financial data saved to {raw_output_file}")
             
         if not metrics_df.empty:
             metrics_df.to_csv(metrics_output_file, index=False)
-            print(f"Calculated metrics saved to {metrics_output_file}")
         
         # Send email with both DataFrames
         notifier = EmailNotifier()
