@@ -137,7 +137,6 @@ class EmailBuilder:
                     opacity=0.7,
                     marker_color='rgba(156, 163, 175, 0.8)',
                     showlegend=False
-                    # Removed fixed width - let Plotly handle it naturally with proper weekly periods
                 )
             )
             
@@ -449,14 +448,6 @@ class EmailBuilder:
             font-weight: bold;
             text-align: left;  /* Left align the title */
         }}
-        .chart-container {{ 
-            background-color: #ffffff; /* White background instead of gray */
-            padding: 20px; 
-            border-radius: 8px; 
-            margin: 25px 0;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
         img {{
             max-width: 100% !important;
             width: 100% !important;
@@ -468,7 +459,7 @@ class EmailBuilder:
         </head>
         <body>       
 
-        {f'<div class="chart-container"><h3 class="section-header">{ticker} 1 Year Stock Performance</h3>{chart_html}</div>' if chart_html else ''}
+        {f'<div"><h3 class="section-header">{ticker} 1 Year Stock Performance</h3>{chart_html}</div>' if chart_html else ''}
 
         <h3 class="section-header">Company Financials</h3>
         {raw_html_table}

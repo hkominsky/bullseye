@@ -2,11 +2,13 @@ from typing import List, Dict
 import pandas as pd
 
 from src.model.utils.http_client import HttpClient
-from src.model.edgar_data_filings.ticker_retriever.cache import FileCache
-from src.model.edgar_data_filings.ticker_retriever.ticker_service import TickerMappingService
-from src.model.edgar_data_filings.sec_data_processor.extractor import SECDataExtractor
-from src.model.edgar_data_filings.sec_data_processor.cleaner import SECDataCleaner
-from src.model.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
+from src.model.data_aggregatoredgar_data_filings.ticker_retriever.cache import FileCache
+from src.model.data_aggregatoredgar_data_filings.ticker_retriever.ticker_service import TickerMappingService
+from src.model.data_aggregator.edgar_data_filings.sec_data_processor.extractor import SECDataExtractor
+from src.model.data_aggregator.edgar_data_filings.sec_data_processor.cleaner import SECDataCleaner
+from src.model.data_aggregator.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
+from src.model.data_aggregator.sentiment_analyzers.corporate_sentiment.py import NewsSentimentAnalyzer
+from src.model.data_aggregator.sentiment_analyzers.retail_sentiment.py import RetailSentimentAnalyzer
 from src.model.utils.models import FinancialRecord
 
 
@@ -30,6 +32,7 @@ class SECDataManager:
         self.extractor = SECDataExtractor(self.http_client, ticker_mapping)
         self.cleaner = SECDataCleaner()
         self.processor = SECDataProcessor()
+        self.news_analyzer = NewsSentimentAnalyzer()
 
     def get_comprehensive_financial_data(
         self, tickers: List[str], periods: int = 8

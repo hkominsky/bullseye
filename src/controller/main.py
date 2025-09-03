@@ -1,6 +1,6 @@
 import sys
 from dotenv import load_dotenv
-from src.model.edgar_data_filings.sec_data_processor.manager import SECDataManager
+from src.model.data_aggregator.manager import SECDataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.notifier.notifications import EmailNotifier
 
@@ -36,6 +36,9 @@ def main():
         sys.exit(1)
     
     manager = SECDataManager(env["USER_AGENT"])
+
+    # for stock in STOCKS:
+    corporate_sentiment, retail_sentiment = manager.get_sentiment(STOCKS)
     raw_df, metrics_df = manager.get_split_financial_dataframes(STOCKS)
     
     if raw_df.empty and metrics_df.empty:
@@ -55,10 +58,11 @@ if __name__ == "__main__":
     """
     raw_df, metrics_df = main()
         
-    if (raw_df is not None and not raw_df.empty) or (metrics_df is not None and not metrics_df.empty):
-        raw_output_file = "src/model/edgar_data_filings/sec_data_processor/raw_financial_data.csv"
-        metrics_output_file = "src/model/edgar_data_filings/sec_data_processor/calculated_metrics.csv"
-        
+    if (raw_df is not None and not raw_df.empty) and (metrics_df is not None and not metrics_df.empty):
+        raw_output_file = "src/model/data_aggregator/edgar_data_filings/sec_data_processor/raw_financial_data.csv"
+        metrics_output_file = "src/model/data_aggregator/edgar_data_filings/sec_data_processor/calculated_metrics.csv"
+
+
         if not raw_df.empty:
             raw_df.to_csv(raw_output_file, index=False)
             

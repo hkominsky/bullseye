@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class TwitterSentimentAnalyzer:
+class RetailSentimentAnalyzer:
     """
     Fetch tweets for a given ticker and compute sentiment scores.
     Uses environment variables for Twitter API credentials.
