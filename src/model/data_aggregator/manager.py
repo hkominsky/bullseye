@@ -9,6 +9,7 @@ from src.model.data_aggregator.edgar_data_filings.sec_data_processor.cleaner imp
 from src.model.data_aggregator.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
 from src.model.data_aggregator.sentiment_analyzers.corporate_sentiment import CorporateSentimentAnalyzer
 from src.model.data_aggregator.sentiment_analyzers.retail_sentiment import RetailSentimentAnalyzer
+from src.model.data_aggregator.ticker_news.news import TickerNews
 from src.model.notifier.notifications import EmailNotifier
 from src.model.utils.models import FinancialRecord
 
@@ -36,6 +37,7 @@ class SECDataManager:
         self.processor = SECDataProcessor()
         self.corporate_sentiment_analyzer = CorporateSentimentAnalyzer()
         self.retail_sentiment_analyzer = RetailSentimentAnalyzer()
+        self.ticker_news = TickerNews()
         self.notifier = EmailNotifier()
 
     def get_comprehensive_financial_data(
@@ -89,6 +91,7 @@ class SECDataManager:
         - Send email notification
         """
         corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
+        ticker_news_df = self.ticker_news.get_ticker_news(ticker)
         raw_df, metrics_df = self.get_financial_dataframes(ticker)
 
         if raw_df.empty or metrics_df.empty:
