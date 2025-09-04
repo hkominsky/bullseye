@@ -7,7 +7,7 @@ load_dotenv()
 
 class CorporateSentimentAnalyzer:
     """
-    Fetch sentiment from news for a given ticker and get sentiment scores.
+    Fetch sentiment from news for a given ticker and return the average sentiment score.
     """
 
     def __init__(self):
@@ -20,7 +20,7 @@ class CorporateSentimentAnalyzer:
         except ValueError:
             raise ValueError("NEWS_SENTIMENT_LIMIT must be an integer.")
 
-    def fetch_sentiment(self, ticker: str) -> pd.DataFrame:
+    def fetch_sentiment(self, ticker: str) -> float:
         url = "https://www.alphavantage.co/query"
         params = {
             "function": "NEWS_SENTIMENT",
@@ -38,9 +38,8 @@ class CorporateSentimentAnalyzer:
             }
             for a in data[:self.limit]
         ]
-        return pd.DataFrame(articles)
 
-    def average_sentiment(self, news_df: pd.DataFrame) -> float:
+        news_df = pd.DataFrame(articles)
         if news_df.empty:
             return 0.0
         return news_df["sentiment"].astype(float).mean()

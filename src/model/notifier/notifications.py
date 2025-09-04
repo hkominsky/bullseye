@@ -28,9 +28,18 @@ class EmailNotifier:
         self.sg_client = SendGridAPIClient(self.api_key)
         self.email_builder = EmailBuilder()
 
-    def send_email(self, raw_df: pd.DataFrame, metrics_df: pd.DataFrame, ticker="AAPL"):
+    def send_email(
+        self,
+        ticker: str,
+        corporate_sentiment: float,
+        retail_sentiment: float,
+        news_df: pd.DataFrame,
+        raw_df: pd.DataFrame,
+        metrics_df: pd.DataFrame,
+    ):
         """
-        Sends an email with two DataFrames and embedded stock chart using CID attachment.
+        Sends an email with all relevant data including financial records, calculated ratios, stock pricing,
+        news, and ticker sentiment.
         
         Args:
             raw_df: Raw financial data DataFrame
@@ -38,9 +47,15 @@ class EmailNotifier:
             subject: Email subject line
             ticker: Stock ticker symbol for chart generation
         """
-        html_content, chart_attachment_data = self.email_builder.build_html_content_with_chart(
-            raw_df, metrics_df, ticker
+       html_content, chart_attachment_data = self.email_builder.build_html_content(
+            raw_df=raw_df,
+            metrics_df=metrics_df,
+            ticker=ticker,
+            corporate_sentiment=corporate_sentiment,
+            retail_sentiment=retail_sentiment,
+            news_df=news_df,
         )
+
         subject = f"{ticker} Market Brief"
 
         message = Mail(
@@ -52,9 +67,7 @@ class EmailNotifier:
 
         if chart_attachment_data:
             chart_bytes, content_id, filename = chart_attachment_data
-            
             chart_base64 = base64.b64encode(chart_bytes).decode('utf-8')
-            
             chart_attachment = Attachment(
                 FileContent(chart_base64),
                 FileName(filename),
@@ -64,15 +77,14 @@ class EmailNotifier:
             )
             
             message.attachment = chart_attachment
-            print(f"Chart generated successfully: {content_id}.")
+            print(f"Chart generated: {content_id}.")
         else:
             print("No chart generated.")
 
         try:
             response = self.sg_client.send(message)
-            print(f"Email sent successfully! Status: {response.status_code}")
+            print(f"[{ticker}] Email sent. Status: {response.status_code}")
             return response.status_code, response.body, response.headers
-
         except Exception as e:
-            print(f"SendGrid error: {str(e)}")
+            print(f"[{ticker}] SendGrid error: {str(e)}")
             return None, str(e), None

@@ -63,6 +63,8 @@ class EmailBuilder:
         
         # Combined set of all custom column names for quick lookup
         self.all_custom_names = set(self.raw_df_mappings.values()) | set(self.metrics_df_mappings.values())
+        self.news_limit = 5
+        self.news_summary_chars = 220
 
     def fetch_stock_data(self, ticker: str) -> pd.DataFrame:
         """
@@ -318,148 +320,138 @@ class EmailBuilder:
         """
         Renames columns in the DataFrame according to a provided mapping.
         """
-        return df.rename(columns=mapping, inplace=False)
+        return df.rename(columns=mapping, inplace=False) 
 
-    def build_email_content(self, raw_df: pd.DataFrame, metrics_df: pd.DataFrame) -> str:
-        """
-        Converts multiple DataFrames to HTML tables for the email body.
-        """
-        raw_df_formatted = self.format_dataframe(raw_df)
-        raw_df_formatted = self.format_column_headers(raw_df_formatted)
-        
-        metrics_df_formatted = self.format_dataframe(metrics_df)
-        metrics_df_formatted = self.format_column_headers(metrics_df_formatted)
-
-        raw_html_table = raw_df_formatted.to_html(index=False, border=0, justify="center", table_id="raw-data-table")
-        metrics_html_table = metrics_df_formatted.to_html(index=False, border=0, justify="center", table_id="metrics-table")
-
-        html_content = f"""
-        <html>
-        <head>
-        <style>
-        table {{ border-collapse: collapse; width: 100%; margin-bottom: 30px; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: center; }}
-        th {{ background-color: #f2f2f2; }}
-        .numeric {{ text-align: right; }}
-        .section-header {{ 
-            color: #2c3e50; 
-            margin-top: 20px; 
-            margin-bottom: 15px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 5px;
-        }}
-        #raw-data-table {{ margin-bottom: 40px; }}
-        #metrics-table {{ margin-top: 20px; }}
-        </style>
-        </head>
-        <body>       
-
-        <h3 class="section-header">Company Financials</h3>
-        {raw_html_table}
-
-        <h3 class="section-header">Calculated Ratios / Metrics</h3>
-        {metrics_html_table}
-
-        </body>
-        </html>
-        """
-        return html_content
-
-    def build_html_content_with_chart(self, raw_df: pd.DataFrame, metrics_df: pd.DataFrame, 
-                                     ticker: str) -> tuple:
+    def build_html_content(
+        self,
+        raw_df: pd.DataFrame,
+        metrics_df: pd.DataFrame,
+        ticker: str,
+        corporate_sentiment: float,
+        retail_sentiment: float,
+        news_df: pd.DataFrame,
+    ) -> tuple:
         """
         Build HTML content and return chart attachment info.
-        
-        Args:
-            raw_df: Raw financial data DataFrame
-            metrics_df: Calculated metrics DataFrame
-            ticker: Stock ticker symbol
-            
         Returns:
-            tuple: (html_content, chart_attachment_data) where chart_attachment_data is
-                   (chart_bytes, content_id, filename) or None if no chart
+            (html_content, (chart_bytes, content_id, filename)|None)
         """
-        # Fetch stock data
+        # ----- Chart -----
         stock_data = self.fetch_stock_data(ticker)
-        
-        # Create chart attachment
         chart_bytes, content_id = self.create_chart_attachment(ticker, stock_data)
-        chart_attachment_data = None
-        
-        if chart_bytes and content_id:
-            chart_attachment_data = (chart_bytes, content_id, f"{ticker}_chart.png")
-        
-        # Format dataframes
+        chart_attachment_data = (chart_bytes, content_id, f"{ticker}_chart.png") if (chart_bytes and content_id) else None
+
+        # ----- DataFrames -----
         filtered_raw_df = self.format_raw_df(raw_df)
         filtered_metrics_df = self.format_metrics_df(metrics_df)
-        
-        raw_df_formatted = self.format_dataframe(filtered_raw_df)
-        raw_df_formatted = self.format_column_headers(raw_df_formatted)
-        
-        metrics_df_formatted = self.format_dataframe(filtered_metrics_df)
-        metrics_df_formatted = self.format_column_headers(metrics_df_formatted)
+
+        raw_df_formatted = self.format_column_headers(self.format_dataframe(filtered_raw_df))
+        metrics_df_formatted = self.format_column_headers(self.format_dataframe(filtered_metrics_df))
 
         raw_html_table = raw_df_formatted.to_html(index=False, border=0, justify="center")
         metrics_html_table = metrics_df_formatted.to_html(index=False, border=0, justify="center")
-        
-        # Build HTML with CID reference
-        chart_html = ""
-        if content_id:
-            chart_html = f'<img src="cid:{content_id}" alt="{ticker} Stock Chart - Last 12 Months" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;">'
 
+        # ----- Sentiment -----
+        corp_badge = self._sentiment_badge(corporate_sentiment, label="Corporate")
+        retail_badge = self._sentiment_badge(retail_sentiment, label="Retail")
+
+        # ----- News block -----
+        news_html = self._build_news_html(news_df)
+
+        # ----- Chart img -----
+        chart_html = f'<img src="cid:{content_id}" alt="{ticker} Stock Chart - Last 12 Months" style="max-width:100%;height:auto;display:block;margin:0 auto;">' if content_id else ""
+
+        # ----- HTML -----
         html_content = f"""
         <html>
         <head>
+        <meta charset="utf-8">
         <style>
-        body {{
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }}
-        table {{ 
-            border-collapse: collapse; 
-            width: 100%; 
-            margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
-        th, td {{ 
-            border: 1px solid #ddd; 
-            padding: 12px 8px; 
-            text-align: center; 
-        }}
-        th {{ 
-            background-color: #f8f9fa; 
-            font-weight: bold;
-            color: #2c3e50;
-        }}
-        tr:nth-child(even) {{
-            background-color: #f9f9f9;
-        }}
-        .section-header {{ 
-            color: #2c3e50; 
-            margin-top: 30px; 
-            margin-bottom: 15px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 8px;
-            font-size: 20px;
-            font-weight: bold;
-            text-align: left;  /* Left align the title */
-        }}
-        img {{
-            max-width: 100% !important;
-            width: 100% !important;
-            height: auto !important;
-            display: block;
-            margin: 0 auto;
-        }}
+            body {{
+                font-family: Arial, sans-serif;
+                line-height: 1.55;
+                color: #333;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }}
+            .section-header {{
+                color: #2c3e50;
+                margin: 28px 0 12px 0;
+                border-bottom: 2px solid #3498db;
+                padding-bottom: 6px;
+                font-size: 20px;
+                font-weight: bold;
+                text-align: left;
+            }}
+            table {{
+                border-collapse: collapse;
+                width: 100%;
+                margin-bottom: 26px;
+            }}
+            th, td {{
+                border: 1px solid #ddd;
+                padding: 10px 8px;
+                text-align: center;
+            }}
+            th {{
+                background-color: #f8f9fa;
+                font-weight: bold;
+                color: #2c3e50;
+            }}
+            .sentiment-row {{
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+                margin: 6px 0 4px 0;
+            }}
+            .badge {{
+                display: inline-block;
+                padding: 6px 10px;
+                border-radius: 999px;
+                font-weight: 600;
+                font-size: 13px;
+                border: 1px solid #e2e8f0;
+                background: #f8fafc;
+            }}
+            .badge-pos {{ color: #166534; background:#ecfdf5; border-color:#86efac; }}
+            .badge-neg {{ color: #991b1b; background:#fef2f2; border-color:#fecaca; }}
+            .badge-neu {{ color: #334155; background:#f1f5f9; border-color:#cbd5e1; }}
+            .news-list {{
+                list-style: none;
+                padding-left: 0;
+                margin: 0;
+            }}
+            .news-item {{
+                margin: 0 0 14px 0;
+            }}
+            .news-headline {{
+                margin: 0 0 4px 0;
+                font-weight: 600;
+            }}
+            .news-summary {{
+                margin: 0;
+            }}
+            a {{
+                color: #2563eb; text-decoration: none;
+            }}
+            a:hover {{
+                text-decoration: underline;
+            }}
         </style>
         </head>
-        <body>       
+        <body>
 
-        {f'<div"><h3 class="section-header">{ticker} 1 Year Stock Performance</h3>{chart_html}</div>' if chart_html else ''}
+        {f'<h3 class="section-header">{ticker} · 1-Year Stock Performance</h3>{chart_html}' if chart_html else ''}
+
+        <h3 class="section-header">Sentiment Snapshot</h3>
+        <div class="sentiment-row">
+            {corp_badge}
+            {retail_badge}
+        </div>
+
+        {f'<h3 class="section-header">Latest News</h3>{news_html}' if news_html else ''}
 
         <h3 class="section-header">Company Financials</h3>
         {raw_html_table}
@@ -470,5 +462,60 @@ class EmailBuilder:
         </body>
         </html>
         """
-        
         return html_content, chart_attachment_data
+
+    def _sentiment_badge(self, score: float, label: str) -> str:
+        try:
+            s = float(score)
+        except Exception:
+            # if something odd sneaks in, show neutral
+            return f'<span class="badge badge-neu">{label}: N/A</span>'
+
+        cls = "badge-neu"
+        if s > 0.05:
+            cls = "badge-pos"
+        elif s < -0.05:
+            cls = "badge-neg"
+        return f'<span class="badge {cls}">{label}: {s:+.2f}</span>'
+
+    def _build_news_html(self, news_df: pd.DataFrame) -> str:
+        if news_df is None or news_df.empty:
+            return ""
+
+        df = news_df.copy()
+
+        # If a publish column exists later, sort by it desc; otherwise assume provided order is newest-first
+        for dt_col in ["published_at", "published", "date", "datetime"]:
+            if dt_col in df.columns:
+                with pd.option_context('mode.chained_assignment', None):
+                    df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce", utc=True)
+                df = df.sort_values(dt_col, ascending=False, na_position="last")
+                break
+
+        cols = {c.lower(): c for c in df.columns}  # map lowercase -> actual
+        headline_col = cols.get("headline", "headline")
+        summary_col = cols.get("summary", "summary")
+        url_col = cols.get("url", "url")
+
+        items = []
+        for _, row in df.head(self.news_limit).iterrows():
+            headline = str(row.get(headline_col, "") or "").strip()
+            summary = str(row.get(summary_col, "") or "").strip()
+            url = str(row.get(url_col, "") or "").strip()
+
+            if not headline and not summary:
+                continue
+
+            # trim long summaries
+            if summary and len(summary) > self.news_summary_chars:
+                summary = summary[: self.news_summary_chars - 1].rstrip() + "…"
+
+            headline_html = f'<div class="news-headline">{headline}</div>' if headline else ""
+            summary_html = f'<p class="news-summary">{summary}</p>' if summary else ""
+            link_html = f' <a href="{url}" target="_blank" rel="noopener noreferrer">Read</a>' if url else ""
+
+            items.append(f'<li class="news-item">{headline_html}{summary_html}{link_html}</li>')
+
+        if not items:
+            return ""
+        return f'<ul class="news-list">{"".join(items)}</ul>'

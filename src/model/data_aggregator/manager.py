@@ -88,18 +88,27 @@ class SECDataManager:
         Process financial data and sentiment for a single stock:
         - Retrieve dataframes
         - Save CSVs
-        - Send email notification
+        - Send email notification (now includes sentiments + news)
         """
         corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
-        ticker_news_df = self.ticker_news.get_ticker_news(ticker)
+        ticker_news_df = self.ticker_news.get_ticker_news(ticker)  # expected: newest first
         raw_df, metrics_df = self.get_financial_dataframes(ticker)
 
         if raw_df.empty or metrics_df.empty:
-            print(f"No financial data retrieved for {ticker}.")
+            print(f"[{ticker}] No financial data retrieved.")
             return
 
+        if ticker_news_df is None or ticker_news_df.empty:
+            print(f"[{ticker}] No news available from TickerNews(). Proceeding without news.")
+            return
+            
         # Save CSVs
         self.save_data(ticker, raw_df, metrics_df)
 
-        # Send email
-        self.notifier.send_email(raw_df, metrics_df)
+        self.notifier.send_email(
+            ticker=ticker,
+            corporate_sentiment=corporate_sentiment,
+            retail_sentiment=retail_sentiment,
+            news_df=ticker_news_df,
+            metrics_df=metrics_df,
+        )
