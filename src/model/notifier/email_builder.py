@@ -13,7 +13,6 @@ class EmailBuilder:
     """
     
     def __init__(self):
-        # Centralized custom column mappings
         self.raw_df_mappings = {
             "cost_of_revenue": "COGS",
             "research_and_development": "R&D",
@@ -61,7 +60,6 @@ class EmailBuilder:
             "market_to_book_premium": "M/B Premium"
         }
         
-        # Combined set of all custom column names for quick lookup
         self.all_custom_names = set(self.raw_df_mappings.values()) | set(self.metrics_df_mappings.values())
         self.news_limit = 5
         self.news_summary_chars = 220
@@ -69,12 +67,6 @@ class EmailBuilder:
     def fetch_stock_data(self, ticker: str) -> pd.DataFrame:
         """
         Fetches stock data for the current year using yfinance.
-        
-        Args:
-            ticker: Stock ticker symbol (e.g., 'AAPL')
-            
-        Returns:
-            DataFrame with stock data for current year
         """
         try:
             stock = yf.Ticker(ticker)
@@ -88,32 +80,55 @@ class EmailBuilder:
             
         return pd.DataFrame()
 
+    def get_stock_performance_data(self, stock_data: pd.DataFrame) -> dict:
+        """
+        Calculate stock performance metrics from stock data.
+        Returns dict with current_price, year_ago_price, price_change_pct, and price_change_abs.
+        """
+        if stock_data.empty:
+            return {
+                'current_price': None,
+                'year_ago_price': None,
+                'price_change_pct': None,
+                'price_change_abs': None
+            }
+        
+        try:
+            current_price = stock_data['Close'].iloc[-1]
+            year_ago_price = stock_data['Close'].iloc[0]
+            price_change_abs = current_price - year_ago_price
+            price_change_pct = (price_change_abs / year_ago_price) * 100
+            
+            return {
+                'current_price': current_price,
+                'year_ago_price': year_ago_price,
+                'price_change_pct': price_change_pct,
+                'price_change_abs': price_change_abs
+            }
+        except Exception as e:
+            print(f"Error calculating stock performance: {str(e)}")
+            return {
+                'current_price': None,
+                'year_ago_price': None,
+                'price_change_pct': None,
+                'price_change_abs': None
+            }
+
     def create_chart_attachment(self, ticker: str, stock_data: pd.DataFrame) -> tuple:
         """
         Creates a PNG chart and returns it as bytes along with CID for email attachment.
-        
-        Args:
-            ticker: Stock ticker symbol
-            stock_data: DataFrame with stock data for current year
-            
-        Returns:
-            tuple: (chart_bytes, content_id) or (None, None) if failed
         """
         try:
             if stock_data.empty:
                 return None, None
             
-            # Calculate 1-year return to determine line color
             first_price = stock_data['Close'].iloc[0]
             last_price = stock_data['Close'].iloc[-1]
             yearly_return = (last_price - first_price) / first_price
             
-            # Set color based on performance: green if up, red if down
             line_color = '#22c55e' if yearly_return >= 0 else '#ef4444'
             fill_color = 'rgba(34, 197, 94, 0.1)' if yearly_return >= 0 else 'rgba(239, 68, 68, 0.1)'
             
-            # Use proper weekly resampling that aligns to week boundaries
-            # 'W' resamples to weekly periods ending on Sunday
             volume_resampled = stock_data['Volume'].resample('W').mean()
             
             fig = go.Figure()
@@ -186,7 +201,6 @@ class EmailBuilder:
         """
         df_formatted = df.copy()
 
-        # Format numeric values only
         for col in df_formatted.columns:
             if pd.api.types.is_numeric_dtype(df_formatted[col]):
                 df_formatted[col] = df_formatted[col].apply(self._format_numeric_value)
@@ -238,22 +252,20 @@ class EmailBuilder:
         try:
             abs_value = abs(float(value))
 
-            if abs_value >= 1e12:  # Trillions
+            if abs_value >= 1e12:
                 formatted = f"{value / 1e12:.1f}T"
-            elif abs_value >= 1e9:  # Billions
+            elif abs_value >= 1e9:
                 formatted = f"{value / 1e9:.1f}B"
-            elif abs_value >= 1e6:  # Millions
+            elif abs_value >= 1e6:
                 formatted = f"{value / 1e6:.1f}M"
-            elif abs_value >= 1e3:  # Thousands
+            elif abs_value >= 1e3:
                 formatted = f"{value / 1e3:.1f}K"
             else:
-                # For smaller numbers, show as is with appropriate decimals
                 if isinstance(value, (int, np.integer)) or float(value).is_integer():
                     return str(int(float(value)))
                 else:
                     return f"{float(value):.2f}".rstrip('0').rstrip('.')
 
-            # Remove .0 from abbreviated numbers
             return formatted.replace('.0', '')
 
         except (ValueError, TypeError, OverflowError):
@@ -269,27 +281,22 @@ class EmailBuilder:
             return value
 
         try:
-            # Remove existing formatting and try to convert
             clean_value = str_value.replace(',', '').replace('$', '').replace('%', '')
             numeric_val = float(clean_value)
 
-            # Check if it's a large number worth abbreviating
             abs_val = abs(numeric_val)
             if abs_val >= 1000:
-                # Format with abbreviations
                 if abs_val >= 1e12:
                     abbreviated = f"{numeric_val / 1e12:.1f}T"
                 elif abs_val >= 1e9:
                     abbreviated = f"{numeric_val / 1e9:.1f}B"
                 elif abs_val >= 1e6:
                     abbreviated = f"{numeric_val / 1e6:.1f}M"
-                else:  # >= 1000
+                else:
                     abbreviated = f"{numeric_val / 1e3:.1f}K"
 
-                # Remove .0 from abbreviated numbers
                 abbreviated = abbreviated.replace('.0', '')
 
-                # Preserve any prefix/suffix symbols
                 if '$' in str_value:
                     abbreviated = '$' + abbreviated
                 if '%' in str_value:
@@ -320,7 +327,169 @@ class EmailBuilder:
         """
         Renames columns in the DataFrame according to a provided mapping.
         """
-        return df.rename(columns=mapping, inplace=False) 
+        return df.rename(columns=mapping, inplace=False)
+
+    def _create_introduction_html(self, ticker: str) -> str:
+        """
+        Creates the HTML introduction section for the email.
+        """
+        return f'''
+        <div class="intro-section">
+            <p>This comprehensive financial analysis for <strong>{ticker}</strong> includes recent market performance, current market sentiment, sector analysis, latest news developments, and detailed financial metrics to provide you with a complete investment overview.</p>
+        </div>
+        '''
+
+    def _create_stock_header(self, ticker: str, stock_performance: dict) -> str:
+        """
+        Creates the stock chart section header with current price and 1Y change.
+        """
+        current_price = stock_performance.get('current_price')
+        price_change_pct = stock_performance.get('price_change_pct')
+        
+        if current_price is None or price_change_pct is None:
+            return f"{ticker}"
+        
+        price_str = f"${current_price:.2f}"
+        pct_change_str = f"{price_change_pct:+.2f}%"
+        perf_class = self.get_performance_class(price_change_pct)
+        
+        return f'''
+        {ticker} Stock Performance 
+        <span style="font-size: 16px; margin-left: 15px;">
+            <span style="color: #2c3e50; font-weight: normal;">{price_str}</span>
+            <span class="{perf_class}" style="margin-left: 8px; font-weight: normal;">
+                {pct_change_str} 1Y
+            </span>
+        </span>
+        '''
+
+    def _create_chart_html(self, content_id: str, ticker: str) -> str:
+        """
+        Creates the HTML for the stock chart display.
+        """
+        if content_id:
+            return f'<img src="cid:{content_id}" alt="{ticker} Stock Chart - Last 12 Months" style="max-width:100%;height:auto;display:block;margin:0 auto;">'
+        else:
+            return ""
+
+    def _format_sentiment_analysis(self, corporate_sentiment: float, retail_sentiment: float) -> str:
+        """
+        Creates formatted HTML for sentiment analysis display with consistent styling.
+        """
+        def get_sentiment_details(score):
+            try:
+                s = float(score)
+            except Exception:
+                return "N/A", "performance-neutral"
+
+            if s > 0.05:
+                return f"{s:+.2f}", "performance-positive"
+            elif s < -0.05:
+                return f"{s:+.2f}", "performance-negative"
+            else:
+                return f"{s:+.2f}", "performance-neutral"
+        
+        corp_value, corp_class = get_sentiment_details(corporate_sentiment)
+        retail_value, retail_class = get_sentiment_details(retail_sentiment)
+
+        return f'''
+        <div class="info-container">
+            <div class="info-line">
+                <span class="info-label">Corporate Sentiment:</span>
+                <span class="info-value {corp_class}">{corp_value}</span>
+            </div>
+            <div class="info-line">
+                <span class="info-label">Retail Sentiment:</span>
+                <span class="info-value {retail_class}">{retail_value}</span>
+            </div>
+        </div>
+        '''
+
+    def _format_sector_performance(self, ticker: str, sector_performance: dict) -> str:
+        """
+        Creates formatted HTML for sector performance display with consistent styling.
+        """
+        if not sector_performance or sector_performance.get("sector") == "Unknown":
+            return '<div class="info-container">Sector information not available</div>'
+        
+        sector = sector_performance.get("sector", "N/A")
+        sector_etf = sector_performance.get("sector_etf", "N/A")
+        ticker_performance_pct = sector_performance.get("ticker_1y_performance_pct", 0.0)
+        sector_performance_pct = sector_performance.get("sector_1y_performance_pct", 0.0)
+        opportunity_cost_pct = ticker_performance_pct - sector_performance_pct
+
+        sector_perf_class = self.get_performance_class(sector_performance_pct)
+        ticker_perf_class = self.get_performance_class(ticker_performance_pct)
+        opportunity_cost_class = self.get_performance_class(opportunity_cost_pct)
+
+        return f'''
+        <div class="info-container">
+            <div class="info-line">
+                <span class="info-label">Sector:</span>
+                <span class="info-value">{sector}</span>
+            </div>
+            <div class="info-line">
+                <span class="info-label">Valuation ETF:</span>
+                <span class="info-value">{sector_etf}</span>
+            </div>
+            <div class="info-line">
+                <span class="info-label">Sector Performance (1Y):</span>
+                <span class="info-value {sector_perf_class}">{sector_performance_pct:+.2f}%</span>
+            </div>
+            <div class="info-line">
+                <span class="info-label">{ticker} Performance (1Y):</span>
+                <span class="info-value {ticker_perf_class}">{ticker_performance_pct:+.2f}%</span>
+            </div>
+            <div class="info-line">
+                <span class="info-label">Opportunity Cost (1Y):</span>
+                <span class="info-value {opportunity_cost_class}">{opportunity_cost_pct:+.2f}%</span>
+            </div>
+        </div>
+        '''
+
+    def get_performance_class(self, performance_pct: float) -> str:
+        """
+        Get the performance class based on the performance percentage.
+        """
+        if performance_pct > 0:
+            return "performance-positive"
+        elif performance_pct < 0:
+            return "performance-negative"
+        else:
+            return "performance-neutral"
+
+    def _build_news_html(self, news_df: pd.DataFrame) -> str:
+        if news_df is None or news_df.empty:
+            return ""
+
+        df = news_df.copy()
+
+        if "published_at" in df.columns:
+            with pd.option_context('mode.chained_assignment', None):
+                df["published_at"] = pd.to_datetime(df["published_at"], errors="coerce", utc=True)
+            df = df.sort_values("published_at", ascending=False, na_position="last")
+
+        items = []
+        for _, row in df.head(self.news_limit).iterrows():
+            headline = str(row.get("headline", "") or "").strip()
+            summary = str(row.get("summary", "") or "").strip()
+            url = str(row.get("url", "") or "").strip()
+
+            if not headline and not summary:
+                continue
+
+            if summary and len(summary) > self.news_summary_chars:
+                summary = summary[: self.news_summary_chars - 1].rstrip() + "…"
+
+            headline_html = f'<div class="news-headline">{headline}</div>' if headline else ""
+            summary_html = f'<p class="news-summary">{summary}</p>' if summary else ""
+            link_html = f' <a href="{url}" target="_blank" rel="noopener noreferrer">Read More...</a>' if url else ""
+
+            items.append(f'<li class="news-item">{headline_html}{summary_html}{link_html}</li>')
+
+        if not items:
+            return ""
+        return f'<ul class="news-list">{"".join(items)}</ul>'
 
     def build_html_content(
         self,
@@ -330,18 +499,35 @@ class EmailBuilder:
         corporate_sentiment: float,
         retail_sentiment: float,
         news_df: pd.DataFrame,
+        sector_performance: dict = None,
     ) -> tuple:
         """
         Build HTML content and return chart attachment info.
         Returns:
             (html_content, (chart_bytes, content_id, filename)|None)
         """
-        # ----- Chart -----
+        # 1. Introduction HTML (first in email)
+        intro_html = self._create_introduction_html(ticker)
+
+        # 2. Stock data and chart preparation (second in email)
         stock_data = self.fetch_stock_data(ticker)
+        stock_performance = self.get_stock_performance_data(stock_data)
         chart_bytes, content_id = self.create_chart_attachment(ticker, stock_data)
         chart_attachment_data = (chart_bytes, content_id, f"{ticker}_chart.png") if (chart_bytes and content_id) else None
+        
+        stock_header = self._create_stock_header(ticker, stock_performance)
+        chart_html = self._create_chart_html(content_id, ticker)
 
-        # ----- DataFrames -----
+        # 3. Sentiment HTML (third in email)
+        sentiment_html = self._format_sentiment_analysis(corporate_sentiment, retail_sentiment)
+
+        # 4. Sector HTML (fourth in email)
+        sector_html = self._format_sector_performance(ticker, sector_performance)
+
+        # 5. News HTML (fifth in email)
+        news_html = self._build_news_html(news_df)
+
+        # 6. Financial DataFrames (sixth and seventh in email)
         filtered_raw_df = self.format_raw_df(raw_df)
         filtered_metrics_df = self.format_metrics_df(metrics_df)
 
@@ -351,17 +537,7 @@ class EmailBuilder:
         raw_html_table = raw_df_formatted.to_html(index=False, border=0, justify="center")
         metrics_html_table = metrics_df_formatted.to_html(index=False, border=0, justify="center")
 
-        # ----- Sentiment -----
-        corp_badge = self._sentiment_badge(corporate_sentiment, label="Corporate")
-        retail_badge = self._sentiment_badge(retail_sentiment, label="Retail")
-
-        # ----- News block -----
-        news_html = self._build_news_html(news_df)
-
-        # ----- Chart img -----
-        chart_html = f'<img src="cid:{content_id}" alt="{ticker} Stock Chart - Last 12 Months" style="max-width:100%;height:auto;display:block;margin:0 auto;">' if content_id else ""
-
-        # ----- HTML -----
+        # Assemble HTML in display order
         html_content = f"""
         <html>
         <head>
@@ -375,6 +551,16 @@ class EmailBuilder:
                 margin: 0 auto;
                 padding: 20px;
             }}
+            
+            .intro-section {{
+                background: #f0f8ff;
+                border-left: 4px solid #3498db;
+                padding: 15px 20px;
+                margin: 20px 0 30px 0;
+                border-radius: 4px;
+                font-size: 16px;
+            }}
+            
             .section-header {{
                 color: #2c3e50;
                 margin: 28px 0 12px 0;
@@ -384,58 +570,115 @@ class EmailBuilder:
                 font-weight: bold;
                 text-align: left;
             }}
+            
+            .context-header {{
+                color: #2c3e50;
+                margin: 35px 0 20px 0;
+                border-bottom: 3px solid #e74c3c;
+                padding-bottom: 8px;
+                font-size: 22px;
+                font-weight: bold;
+                text-align: left;
+            }}
+            
+            .financial-header {{
+                color: #2c3e50;
+                margin: 35px 0 20px 0;
+                border-bottom: 3px solid #27ae60;
+                padding-bottom: 8px;
+                font-size: 22px;
+                font-weight: bold;
+                text-align: left;
+            }}
+            
             table {{
                 border-collapse: collapse;
                 width: 100%;
                 margin-bottom: 26px;
             }}
+            
             th, td {{
                 border: 1px solid #ddd;
                 padding: 10px 8px;
                 text-align: center;
             }}
+            
             th {{
                 background-color: #f8f9fa;
                 font-weight: bold;
                 color: #2c3e50;
             }}
-            .sentiment-row {{
+            
+            .info-container {{
+                background: #f8f9fa;
+                border-left: 4px solid #3498db;
+                padding: 15px 20px;
+                margin: 15px 0;
+                border-radius: 4px;
+            }}
+            .info-line {{
                 display: flex;
-                gap: 10px;
                 align-items: center;
-                flex-wrap: wrap;
-                margin: 6px 0 4px 0;
+                justify-content: flex-start;
+                margin-bottom: 8px;
+                font-size: 14px;
+                min-height: 20px;
             }}
-            .badge {{
-                display: inline-block;
-                padding: 6px 10px;
-                border-radius: 999px;
+            
+            .info-line:last-child {{
+                margin-bottom: 0;
+            }}
+            
+            .info-label {{
                 font-weight: 600;
-                font-size: 13px;
-                border: 1px solid #e2e8f0;
-                background: #f8fafc;
+                margin-right: 12px;
+                min-width: 180px;
+                flex-shrink: 0;
+                text-align: left;
             }}
-            .badge-pos {{ color: #166534; background:#ecfdf5; border-color:#86efac; }}
-            .badge-neg {{ color: #991b1b; background:#fef2f2; border-color:#fecaca; }}
-            .badge-neu {{ color: #334155; background:#f1f5f9; border-color:#cbd5e1; }}
+            
+            .info-value {{
+                font-weight: bold;
+                font-size: 14px;
+                flex-grow: 0;
+                text-align: left;
+            }}
+            
+            .performance-positive {{
+                color: #22c55e;
+            }}
+            
+            .performance-negative {{
+                color: #ef4444;
+            }}
+            
+            .performance-neutral {{
+                color: #6b7280;
+            }}
+            
             .news-list {{
                 list-style: none;
                 padding-left: 0;
                 margin: 0;
             }}
+            
             .news-item {{
                 margin: 0 0 14px 0;
             }}
+            
             .news-headline {{
                 margin: 0 0 4px 0;
                 font-weight: 600;
             }}
+            
             .news-summary {{
                 margin: 0;
             }}
+            
             a {{
                 color: #2563eb; text-decoration: none;
             }}
+            
             a:hover {{
                 text-decoration: underline;
             }}
@@ -443,15 +686,19 @@ class EmailBuilder:
         </head>
         <body>
 
-        {f'<h3 class="section-header">{ticker} · 1-Year Stock Performance</h3>{chart_html}' if chart_html else ''}
+        {intro_html}
 
-        <h3 class="section-header">Sentiment Snapshot</h3>
-        <div class="sentiment-row">
-            {corp_badge}
-            {retail_badge}
-        </div>
+        <h3 class="section-header">{stock_header}</h3>
+        {chart_html}
 
-        {f'<h3 class="section-header">Latest News</h3>{news_html}' if news_html else ''}
+        <h3 class="section-header">Sentiment Analysis</h3>
+        {sentiment_html}
+
+        <h3 class="section-header">Sector Analysis</h3>
+        {sector_html if sector_html else '<div class="info-container">Sector information not available</div>'}
+            
+        <h3 class="section-header">News</h3>
+        {news_html if news_html else '<div class="info-container">No recent news available</div>'}
 
         <h3 class="section-header">Company Financials</h3>
         {raw_html_table}
@@ -463,59 +710,3 @@ class EmailBuilder:
         </html>
         """
         return html_content, chart_attachment_data
-
-    def _sentiment_badge(self, score: float, label: str) -> str:
-        try:
-            s = float(score)
-        except Exception:
-            # if something odd sneaks in, show neutral
-            return f'<span class="badge badge-neu">{label}: N/A</span>'
-
-        cls = "badge-neu"
-        if s > 0.05:
-            cls = "badge-pos"
-        elif s < -0.05:
-            cls = "badge-neg"
-        return f'<span class="badge {cls}">{label}: {s:+.2f}</span>'
-
-    def _build_news_html(self, news_df: pd.DataFrame) -> str:
-        if news_df is None or news_df.empty:
-            return ""
-
-        df = news_df.copy()
-
-        # If a publish column exists later, sort by it desc; otherwise assume provided order is newest-first
-        for dt_col in ["published_at", "published", "date", "datetime"]:
-            if dt_col in df.columns:
-                with pd.option_context('mode.chained_assignment', None):
-                    df[dt_col] = pd.to_datetime(df[dt_col], errors="coerce", utc=True)
-                df = df.sort_values(dt_col, ascending=False, na_position="last")
-                break
-
-        cols = {c.lower(): c for c in df.columns}  # map lowercase -> actual
-        headline_col = cols.get("headline", "headline")
-        summary_col = cols.get("summary", "summary")
-        url_col = cols.get("url", "url")
-
-        items = []
-        for _, row in df.head(self.news_limit).iterrows():
-            headline = str(row.get(headline_col, "") or "").strip()
-            summary = str(row.get(summary_col, "") or "").strip()
-            url = str(row.get(url_col, "") or "").strip()
-
-            if not headline and not summary:
-                continue
-
-            # trim long summaries
-            if summary and len(summary) > self.news_summary_chars:
-                summary = summary[: self.news_summary_chars - 1].rstrip() + "…"
-
-            headline_html = f'<div class="news-headline">{headline}</div>' if headline else ""
-            summary_html = f'<p class="news-summary">{summary}</p>' if summary else ""
-            link_html = f' <a href="{url}" target="_blank" rel="noopener noreferrer">Read</a>' if url else ""
-
-            items.append(f'<li class="news-item">{headline_html}{summary_html}{link_html}</li>')
-
-        if not items:
-            return ""
-        return f'<ul class="news-list">{"".join(items)}</ul>'

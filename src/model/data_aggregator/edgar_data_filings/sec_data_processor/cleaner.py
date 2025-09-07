@@ -8,21 +8,12 @@ class SECDataCleaner:
     def __init__(self, strict_validation: bool = False):
         """
         Initialize SEC Data Cleaner with minimal required parameters.
-        
-        Args:
-            strict_validation (bool): If True, raises warnings for data issues instead of silent fixes.
         """
         self.strict_validation = strict_validation
     
     def clean_financial_records(self, records: List[FinancialRecord]) -> List[FinancialRecord]:
         """
         Clean a list of FinancialRecord objects.
-        
-        Args:
-            records (List[FinancialRecord]): List of financial records to clean.
-        
-        Returns:
-            List[FinancialRecord]: Cleaned financial records.
         """
         if not records:
             return records
@@ -44,13 +35,6 @@ class SECDataCleaner:
     def impute_missing_quarterly_data(self, records: List[FinancialRecord], ticker: str) -> List[FinancialRecord]:
         """
         Impute missing quarterly data when only annual data is available.
-        
-        Args:
-            records (List[FinancialRecord]): Financial records for a ticker.
-            ticker (str): Stock ticker symbol.
-        
-        Returns:
-            List[FinancialRecord]: Financial records with imputed quarterly data.
         """
         fiscal_years = {}
         for record in records:
@@ -129,48 +113,27 @@ class SECDataCleaner:
     def _extract_period_type(self, period: str) -> str:
         """
         Extract the period type from a period string that may include year.
-        
-        Args:
-            period (str): Period string (e.g., "2024 Q1", "Q1", "2024 FY", "FY").
-        
-        Returns:
-            str: Period type (Q1, Q2, Q3, Q4, FY, or original if no match).
         """
         if not period:
             return ""
         
-        # Handle year-prefixed periods (e.g., "2024 Q1", "2024 FY")
         if ' ' in period:
             parts = period.split()
             if len(parts) >= 2:
-                # Return the last part which should be the period type
                 return parts[-1]
         
-        # Handle direct period strings (e.g., "Q1", "FY")
         return period
     
     def _is_annual_period(self, period: str) -> bool:
         """
         Check if a period represents an annual/full-year period.
-        
-        Args:
-            period (str): Period string.
-        
-        Returns:
-            bool: True if annual period, False otherwise.
         """
         period_type = self._extract_period_type(period)
-        return period_type in ['FY', 'Q4']  # Some companies use Q4 for annual
+        return period_type in ['FY', 'Q4']
     
     def _is_quarterly_period(self, period: str) -> bool:
         """
         Check if a period represents a quarterly period.
-        
-        Args:
-            period (str): Period string.
-        
-        Returns:
-            bool: True if quarterly period, False otherwise.
         """
         period_type = self._extract_period_type(period)
         return period_type in ['Q1', 'Q2', 'Q3', 'Q4']
@@ -178,12 +141,6 @@ class SECDataCleaner:
     def clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Clean a pandas DataFrame of financial data.
-        
-        Args:
-            df (pd.DataFrame): Financial data DataFrame.
-        
-        Returns:
-            pd.DataFrame: Cleaned DataFrame.
         """
         if df.empty:
             return df
@@ -196,12 +153,6 @@ class SECDataCleaner:
     def _clean_individual_record(self, record: FinancialRecord) -> Optional[FinancialRecord]:
         """
         Clean an individual financial record with enhanced validation.
-        
-        Args:
-            record (FinancialRecord): Financial record to clean.
-        
-        Returns:
-            Optional[FinancialRecord]: Cleaned record or None if invalid.
         """
         try:
             record_dict = record.to_dict() if hasattr(record, 'to_dict') else record.__dict__.copy()
@@ -227,12 +178,6 @@ class SECDataCleaner:
     def _remove_duplicate_records(self, records: List[FinancialRecord]) -> List[FinancialRecord]:
         """
         Remove duplicate records based on ticker, date, and form_type.
-        
-        Args:
-            records (List[FinancialRecord]): List of financial records.
-        
-        Returns:
-            List[FinancialRecord]: Deduplicated records.
         """
         seen = set()
         unique_records = []
@@ -248,9 +193,6 @@ class SECDataCleaner:
     def _calculate_missing_metrics(self, record_dict: dict) -> None:
         """
         Calculate any missing basic financial metrics.
-        
-        Args:
-            record_dict (dict): Financial record data.
         """
         if (record_dict.get('gross_profit') is None and 
             record_dict.get('revenue') is not None and 
@@ -265,12 +207,6 @@ class SECDataCleaner:
     def _normalize_dates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Normalize dates in DataFrame.
-        
-        Args:
-            df (pd.DataFrame): DataFrame containing financial records.
-        
-        Returns:
-            pd.DataFrame: DataFrame with normalized dates.
         """
         if 'date' in df.columns:
             df['date'] = df['date'].apply(self._normalize_date)
@@ -279,24 +215,12 @@ class SECDataCleaner:
     def _remove_duplicate_rows(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Remove duplicate rows from DataFrame.
-        
-        Args:
-            df (pd.DataFrame): DataFrame containing financial records.
-        
-        Returns:
-            pd.DataFrame: DataFrame without duplicate rows.
         """
         return df.drop_duplicates()
     
     def _validate_date(self, date_val: Any) -> bool:
         """
         Validate if date is in acceptable format.
-        
-        Args:
-            date_val (Any): Date value to validate.
-        
-        Returns:
-            bool: True if valid, False otherwise.
         """
         if date_val is None:
             return False
@@ -319,12 +243,6 @@ class SECDataCleaner:
     def _normalize_date(self, date_val: Any) -> Optional[str]:
         """
         Normalize date to standard format.
-        
-        Args:
-            date_val (Any): Date value to normalize.
-        
-        Returns:
-            Optional[str]: Normalized date in YYYY-MM-DD format or None if invalid.
         """
         if date_val is None:
             return None

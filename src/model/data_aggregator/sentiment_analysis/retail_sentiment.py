@@ -45,12 +45,6 @@ class RetailSentimentAnalyzer:
         - Fetches tweets for the given ticker.
         - Computes sentiment scores.
         - Returns the average sentiment score.
-
-        Args:
-            ticker (str): Stock ticker symbol (e.g., "AAPL").
-
-        Returns:
-            float: Average sentiment score (−1.0 to +1.0).
         """
 
         tweets_df = self.fetch_tweets(ticker, self.num_tweets)
@@ -60,13 +54,6 @@ class RetailSentimentAnalyzer:
     def fetch_tweets(self, ticker: str, count: int) -> pd.DataFrame:
         """
         Fetch recent tweets mentioning the ticker.
-
-        Args:
-            ticker (str): Stock ticker symbol.
-            count (int): Number of tweets to fetch.
-
-        Returns:
-            pd.DataFrame: DataFrame containing tweet text and creation time.
         """
         query = f"${ticker} -filter:retweets"
         tweets = tweepy.Cursor(
@@ -81,12 +68,6 @@ class RetailSentimentAnalyzer:
     def compute_sentiment(self, tweets_df: pd.DataFrame) -> pd.DataFrame:
         """
         Analyze sentiment of tweets and add a sentiment score column.
-
-        Args:
-            tweets_df (pd.DataFrame): DataFrame of tweets.
-
-        Returns:
-            pd.DataFrame: DataFrame with an added 'sentiment' column.
         """
         if tweets_df.empty:
             tweets_df["sentiment"] = []
@@ -99,12 +80,6 @@ class RetailSentimentAnalyzer:
     def average_sentiment(self, tweets_df: pd.DataFrame) -> float:
         """
         Compute average sentiment score for a set of tweets.
-
-        Args:
-            tweets_df (pd.DataFrame): DataFrame with sentiment scores.
-
-        Returns:
-            float: Average sentiment score (0.0 if no tweets).
         """
         if tweets_df.empty:
             return 0.0

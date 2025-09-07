@@ -12,43 +12,31 @@ class SECDataProcessor:
     """
     
     def __init__(self):
-        self.stock_price_cache = {}  # Cache to avoid redundant API calls
+        self.stock_price_cache = {}
     
     def get_stock_price_for_date(self, ticker: str, date: str, window_days: int = 5) -> Optional[float]:
         """
         Get stock price for a specific date with fallback window.
-        
-        Args:
-            ticker (str): Stock ticker symbol
-            date (str): Date in YYYY-MM-DD format  
-            window_days (int): Number of days before/after to search if exact date unavailable
-            
-        Returns:
-            Optional[float]: Stock price (closing price) or None if not found
         """
         cache_key = f"{ticker}_{date}"
         if cache_key in self.stock_price_cache:
             return self.stock_price_cache[cache_key]
         
         try:
-            # Convert date string to datetime
             target_date = datetime.strptime(date, "%Y-%m-%d")
             start_date = target_date - timedelta(days=window_days)
             end_date = target_date + timedelta(days=window_days)
             
-            # Fetch stock data for the window
             stock = yf.Ticker(ticker)
             history = stock.history(start=start_date, end=end_date)
             
             if history.empty:
                 return None
             
-            # Try to get exact date first, then closest available date
             if target_date.strftime('%Y-%m-%d') in history.index.strftime('%Y-%m-%d'):
                 price = history.loc[history.index.strftime('%Y-%m-%d') == target_date.strftime('%Y-%m-%d'), 'Close'].iloc[0]
             else:
-                # Get closest available date
-                price = history['Close'].iloc[-1]  # Most recent price in window
+                price = history['Close'].iloc[-1]
             
             self.stock_price_cache[cache_key] = float(price)
             return float(price)
@@ -60,17 +48,10 @@ class SECDataProcessor:
     def create_financial_dataframe(self, financial_data: dict[str, list[FinancialRecord]]) -> pd.DataFrame:
         """
         Convert financial records dictionary to a pandas DataFrame with enhanced metrics.
-        
-        Args:
-            financial_data (dict[str, list[FinancialRecord]]): Dictionary mapping ticker symbols to lists of FinancialRecord objects.
-            
-        Returns:
-            pd.DataFrame: DataFrame with all financial records including ticker column and market metrics.
         """
         df_records = []
         
         for ticker, records in financial_data.items():
-            # Process records with all metrics including market data
             enhanced_records = self._enhance_records_with_all_metrics(records)
             
             for record in enhanced_records:
@@ -83,42 +64,27 @@ class SECDataProcessor:
     def create_split_dataframes(self, financial_data: dict[str, list[FinancialRecord]]) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Create two separate DataFrames: one with raw financial data and one with calculated metrics.
-        
-        Args:
-            financial_data (dict[str, list[FinancialRecord]]): Dictionary mapping ticker symbols to lists of FinancialRecord objects.
-            
-        Returns:
-            tuple[pd.DataFrame, pd.DataFrame]: Tuple containing (raw_data_df, calculated_metrics_df)
         """
-        # Use existing method to create the full DataFrame with proper column order
         full_df = self.create_financial_dataframe(financial_data)
         
         if full_df.empty:
             return pd.DataFrame(), pd.DataFrame()
         
-        # Define which fields are calculated metrics (everything else is considered raw)
         calculated_fields = {
             'working_capital', 'free_cash_flow', 'gross_margin', 'operating_margin',
             'net_margin', 'current_ratio', 'quick_ratio', 'debt_to_equity',
             'return_on_assets', 'return_on_equity', 'earnings_per_share',
             'asset_turnover', 'altman_z_score', 'piotroski_f_score',
-            # Market-based metrics
             'stock_price', 'market_cap', 'enterprise_value', 'book_value_per_share',
             'price_to_earnings', 'price_to_book', 'price_to_sales', 'ev_to_revenue',
             'ev_to_ebitda', 'revenue_per_share', 'cash_per_share', 'fcf_per_share',
             'price_to_fcf', 'market_to_book_premium'
         }
         
-        # Split columns dynamically
         all_columns = full_df.columns.tolist()
-        
-        # Raw columns: all columns except calculated ones
         raw_columns = [col for col in all_columns if col not in calculated_fields]
-        
-        # Metrics columns: ticker, period (for identification) + calculated fields
         metrics_columns = ['ticker', 'period'] + [col for col in all_columns if col in calculated_fields]
         
-        # Create split DataFrames preserving original column order
         raw_df = full_df[raw_columns].copy()
         metrics_df = full_df[metrics_columns].copy()
         
@@ -128,13 +94,6 @@ class SECDataProcessor:
                                financial_data: dict[str, list[FinancialRecord]]) -> dict[str, list[GrowthMetrics]]:
         """
         Calculate comprehensive growth metrics for specified tickers.
-        
-        Args:
-            tickers (list[str]): List of ticker symbols to process.
-            financial_data (dict[str, list[FinancialRecord]]): Dictionary mapping tickers to financial records.
-            
-        Returns:
-            dict[str, list[GrowthMetrics]]: Dictionary mapping tickers to lists of GrowthMetrics objects.
         """
         growth_data = {}
         
@@ -168,12 +127,6 @@ class SECDataProcessor:
     def process_records_with_metrics(self, records: list[FinancialRecord]) -> list[FinancialRecord]:
         """
         Process financial records by calculating missing metrics and advanced scores.
-        
-        Args:
-            records (list[FinancialRecord]): List of FinancialRecord objects to process.
-            
-        Returns:
-            list[FinancialRecord]: List of enhanced FinancialRecord objects with calculated metrics.
         """
         return self._enhance_records_with_all_metrics(records)
     
@@ -182,20 +135,10 @@ class SECDataProcessor:
                                  growth_data: list[GrowthMetrics]) -> dict[str, Any]:
         """
         Generate a comprehensive financial summary for a company.
-        
-        Args:
-            ticker (str): Stock ticker symbol.
-            profile: Company profile object with basic company information.
-            financial_records (list[FinancialRecord]): List of financial records for the company.
-            growth_data (list[GrowthMetrics]): List of growth metrics for the company.
-            
-        Returns:
-            dict[str, Any]: Dictionary containing structured financial summary.
         """
         if not financial_records:
             return {'error': f'No financial data available for {ticker}'}
         
-        # Get most recent data
         latest_record = max(financial_records, key=lambda x: x.date)
         
         return {
@@ -214,28 +157,18 @@ class SECDataProcessor:
     def _enhance_records_with_all_metrics(self, records: list[FinancialRecord]) -> list[FinancialRecord]:
         """
         Enhance records with both fundamental and market-based metrics.
-        
-        Args:
-            records (list[FinancialRecord]): Original financial records
-            
-        Returns:
-            list[FinancialRecord]: Enhanced records with all metrics
         """
         enhanced_records = []
         
         for record in records:
-            # Convert to dict for calculations
             record_dict = asdict(record)
             
-            # Calculate all fundamental metrics
             self._calculate_all_financial_metrics(record_dict)
             
-            # Get stock price and add market metrics if available
             stock_price = self.get_stock_price_for_date(record.ticker, record.date)
             if stock_price and record.shares_outstanding:
                 self._add_market_metrics_to_dict(record_dict, record, stock_price)
             
-            # Add advanced scoring metrics
             enhanced_record = self._create_record_from_dict(record_dict)
             final_record = replace(
                 enhanced_record,
@@ -250,23 +183,11 @@ class SECDataProcessor:
     def _calculate_all_financial_metrics(self, data: dict) -> None:
         """
         Calculate ALL financial metrics including margins, ratios, and derived values.
-        
-        Args:
-            data (dict): Dictionary containing financial data to be enhanced
         """
-        # 1. Calculate derived values
         self._calculate_derived_values(data)
-        
-        # 2. Calculate margins
         self._calculate_margins(data)
-        
-        # 3. Calculate financial ratios
         self._calculate_ratios(data)
-        
-        # 4. Calculate per-share metrics
         self._calculate_per_share_metrics_dict(data)
-        
-        # 5. Calculate advanced metrics
         self._calculate_advanced_metrics_dict(data)
     
     def _calculate_derived_values(self, data: dict) -> None:

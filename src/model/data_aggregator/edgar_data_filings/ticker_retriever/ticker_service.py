@@ -21,10 +21,6 @@ class TickerMappingService:
     def __init__(self, http_client: HttpClient, cache: CacheInterface):
         """
         Initialize the TickerMappingService.
-
-        Args:
-            http_client (HttpClient): Client for performing HTTP requests.
-            cache (CacheInterface): Cache implementation for storing ticker data.
         """
         self.http_client = http_client
         self.cache = cache
@@ -39,14 +35,6 @@ class TickerMappingService:
 
         If the cache is expired (or missing), the data is refreshed from the SEC.
         Otherwise, the mapping is read directly from the local cache.
-
-        Args:
-            cache_file (str): Path to the cached ticker file.
-            refresh_days (int): Number of days before cached data is considered expired.
-
-        Returns:
-            Dict[str, str]: Dictionary mapping stock tickers (uppercase) to
-                            zero-padded 10-digit CIK strings.
         """
         if self.cache.is_expired(cache_file, refresh_days):
             self._refresh_cache(cache_file)
@@ -60,13 +48,6 @@ class TickerMappingService:
 
         This method fetches the latest ticker-to-CIK mapping and overwrites
         the local cache file.
-
-        Args:
-            cache_file (str): Path where the refreshed data should be saved.
-
-        Raises:
-            IOError: If there's an error writing the file.
-            requests.RequestException: If the HTTP request to the SEC fails.
         """
         response = self.http_client.get(self.SEC_TICKER_URL)
         self.cache.write(cache_file, response.text)
@@ -74,13 +55,6 @@ class TickerMappingService:
     def _build_ticker_mapping(self, ticker_data: Dict[str, Any]) -> Dict[str, str]:
         """
         Build the mapping of tickers to CIKs from SEC JSON data.
-
-        Args:
-            ticker_data (Dict[str, Any]): Parsed JSON data from the SEC or cache.
-
-        Returns:
-            Dict[str, str]: Dictionary mapping stock tickers (uppercase) to
-                            zero-padded 10-digit CIK strings.
         """
         return {
             entry["ticker"].upper(): str(entry["cik_str"]).zfill(10)

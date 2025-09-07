@@ -86,10 +86,6 @@ class SECDataExtractor:
     def __init__(self, http_client: HttpClient, ticker_mapping: Dict[str, str]):
         """
         Initialize the extractor with HTTP client and ticker-to-CIK mapping.
-
-        Args:
-            http_client (HttpClient): Client to fetch SEC data.
-            ticker_mapping (Dict[str, str]): Mapping of ticker symbols to CIK identifiers.
         """
         self.http_client = http_client
         self.ticker_mapping = ticker_mapping
@@ -97,13 +93,6 @@ class SECDataExtractor:
     def extract_raw_financial_data(self, ticker: str, limit: int = 8) -> List[FinancialRecord]:
         """
         Extract raw SEC financial data for a given ticker.
-
-        Args:
-            ticker (str): Stock ticker symbol.
-            limit (int, optional): Number of periods to return. Defaults to 8.
-
-        Returns:
-            List[FinancialRecord]: List of financial records sorted by date (most recent first).
         """
         cik = self._get_cik(ticker)
         url = self.SEC_COMPANY_FACTS_URL.format(cik)
@@ -126,12 +115,6 @@ class SECDataExtractor:
     def _get_cik(self, ticker: str) -> str:
         """
         Get the CIK for a given ticker.
-
-        Args:
-            ticker (str): Stock ticker symbol.
-
-        Returns:
-            str: The CIK identifier.
         """
         if ticker not in self.ticker_mapping:
             raise ValueError(
@@ -142,14 +125,6 @@ class SECDataExtractor:
     def _parse_facts_to_records(self, ticker: str, facts: Dict[str, Any], limit: int) -> List[FinancialRecord]:
         """
         Convert SEC facts JSON into a list of FinancialRecord objects.
-
-        Args:
-            ticker (str): Stock ticker symbol.
-            facts (Dict[str, Any]): Raw SEC facts JSON.
-            limit (int): Number of records to return.
-
-        Returns:
-            List[FinancialRecord]: Parsed financial records.
         """
         if "facts" not in facts or "us-gaap" not in facts["facts"]:
             print(f"No US-GAAP data found for {ticker}")
@@ -183,13 +158,6 @@ class SECDataExtractor:
     ) -> None:
         """
         Collect metric values for a field across reporting periods.
-
-        Args:
-            ticker (str): Stock ticker symbol.
-            us_gaap_facts (Dict[str, Any]): GAAP fact data from SEC.
-            field_name (str): Logical financial metric name.
-            metric_names (List[str]): Possible SEC field names for the metric.
-            period_data (Dict[str, Dict[str, Any]]): Dictionary of collected period data.
         """
         for metric_name in metric_names:
             if metric_name not in us_gaap_facts or "units" not in us_gaap_facts[metric_name]:
@@ -211,12 +179,6 @@ class SECDataExtractor:
     ) -> None:
         """
         Insert or update a financial metric entry in the period_data dictionary.
-
-        Args:
-            ticker (str): Stock ticker symbol.
-            field_name (str): Logical financial metric name.
-            entry (Dict[str, Any]): SEC entry containing financial data.
-            period_data (Dict[str, Dict[str, Any]]): Dictionary of collected period data.
         """
         end_date = entry.get("end")
         form_type = entry.get("form", "")
@@ -242,12 +204,6 @@ class SECDataExtractor:
     def _build_financial_record(self, data: Dict[str, Any]) -> FinancialRecord:
         """
         Build a FinancialRecord from raw period data.
-
-        Args:
-            data (Dict[str, Any]): Dictionary of financial fields.
-
-        Returns:
-            FinancialRecord: Dataclass instance of financial record.
         """
         valid_fields = {k: v for k, v in data.items() if k in FinancialRecord.__dataclass_fields__}
         return FinancialRecord(**valid_fields)
@@ -255,13 +211,6 @@ class SECDataExtractor:
     def _determine_unit_key(self, field_name: str, units: Dict) -> str:
         """
         Determine which unit key to use for a given metric.
-
-        Args:
-            field_name (str): Logical financial metric name.
-            units (Dict): Units dictionary from SEC data.
-
-        Returns:
-            str: The chosen unit key.
         """
         share_fields = ['shares_outstanding', 'weighted_average_shares', 'shares_issued']
 
@@ -281,12 +230,6 @@ class SECDataExtractor:
     def _validate_entry(self, entry: Dict[str, Any]) -> bool:
         """
         Validate an SEC data entry for required fields and reasonable values.
-
-        Args:
-            entry (Dict[str, Any]): A single SEC entry.
-
-        Returns:
-            bool: True if entry is valid, False otherwise.
         """
         if not entry.get('end') or entry.get('val') is None:
             return False
@@ -305,13 +248,6 @@ class SECDataExtractor:
     def _should_update_metric(self, existing_data: Dict, new_entry: Dict) -> bool:
         """
         Decide whether a new entry should replace an existing metric.
-
-        Args:
-            existing_data (Dict): The current metric data.
-            new_entry (Dict): A new SEC entry.
-
-        Returns:
-            bool: True if new entry should replace, False otherwise.
         """
         new_form = new_entry.get('form', '')
         existing_form = existing_data.get('form_type', '')
@@ -326,26 +262,12 @@ class SECDataExtractor:
     def _has_sufficient_data(self, data: Dict) -> bool:
         """
         Check if a record has enough data to be useful.
-
-        Args:
-            data (Dict): Financial data for a period.
-
-        Returns:
-            bool: True if sufficient, False otherwise.
         """
         return data.get('revenue') is not None or data.get('total_assets') is not None
 
     def _determine_period(self, end_date: str, form_type: str, frame: str = "") -> str:
         """
         Determine reporting period (quarter or FY) from form type, frame, and end date.
-
-        Args:
-            end_date (str): Period end date in ISO format.
-            form_type (str): SEC form type (e.g., "10-K", "10-Q").
-            frame (str, optional): Frame label provided by SEC.
-
-        Returns:
-            str: Reporting period with year (e.g., "2024 Q1", "2024 Q2", "2024 FY", "Unknown").
         """
         try:
             date_obj = datetime.fromisoformat(end_date)
@@ -366,12 +288,6 @@ class SECDataExtractor:
     def _extract_period_from_frame(self, frame: str) -> str:
         """
         Extract period information from SEC frame string.
-        
-        Args:
-            frame (str): Frame label from SEC data.
-            
-        Returns:
-            str: Period string (Q1, Q2, Q3, Q4, FY) or empty string if not found.
         """
         if not frame:
             return ""
@@ -390,13 +306,6 @@ class SECDataExtractor:
     def _determine_period_from_form_and_date(self, form_type: str, month: int) -> str:
         """
         Determine period based on SEC form type and month.
-        
-        Args:
-            form_type (str): SEC form type (e.g., "10-K", "10-Q").
-            month (int): Month number (1-12).
-            
-        Returns:
-            str: Period string (Q1, Q2, Q3, Q4, FY, Unknown).
         """
         if form_type == "10-K":
             return "FY"
@@ -408,12 +317,6 @@ class SECDataExtractor:
     def _get_quarter_from_10q_month(self, month: int) -> str:
         """
         Map month to quarter for 10-Q filings (which have specific timing rules).
-        
-        Args:
-            month (int): Month number (1-12).
-            
-        Returns:
-            str: Quarter string (Q1, Q2, Q3, Q4, Unknown).
         """
         month_to_quarter = {
             1: "Q4", 2: "Q4", 3: "Q1", 4: "Q1", 5: "Q1", 6: "Q2",
@@ -424,12 +327,6 @@ class SECDataExtractor:
     def _get_quarter_from_month(self, month: int) -> str:
         """
         Map month to standard calendar quarter.
-        
-        Args:
-            month (int): Month number (1-12).
-            
-        Returns:
-            str: Quarter string (Q1, Q2, Q3, Q4).
         """
         if month in [1, 2, 3]:
             return "Q1"

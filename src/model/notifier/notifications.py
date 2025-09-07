@@ -34,26 +34,22 @@ class EmailNotifier:
         corporate_sentiment: float,
         retail_sentiment: float,
         news_df: pd.DataFrame,
+        sector_performance: dict,
         raw_df: pd.DataFrame,
         metrics_df: pd.DataFrame,
     ):
         """
         Sends an email with all relevant data including financial records, calculated ratios, stock pricing,
-        news, and ticker sentiment.
-        
-        Args:
-            raw_df: Raw financial data DataFrame
-            metrics_df: Calculated metrics DataFrame
-            subject: Email subject line
-            ticker: Stock ticker symbol for chart generation
+        news, sector performance, and ticker sentiment.
         """
-       html_content, chart_attachment_data = self.email_builder.build_html_content(
+        html_content, chart_attachment_data = self.email_builder.build_html_content(
             raw_df=raw_df,
             metrics_df=metrics_df,
             ticker=ticker,
             corporate_sentiment=corporate_sentiment,
             retail_sentiment=retail_sentiment,
             news_df=news_df,
+            sector_performance=sector_performance,
         )
 
         subject = f"{ticker} Market Brief"
@@ -77,13 +73,11 @@ class EmailNotifier:
             )
             
             message.attachment = chart_attachment
-            print(f"Chart generated: {content_id}.")
         else:
             print("No chart generated.")
 
         try:
             response = self.sg_client.send(message)
-            print(f"[{ticker}] Email sent. Status: {response.status_code}")
             return response.status_code, response.body, response.headers
         except Exception as e:
             print(f"[{ticker}] SendGrid error: {str(e)}")

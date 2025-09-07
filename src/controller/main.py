@@ -43,5 +43,3 @@ if __name__ == "__main__":
         Sends per-stock emails with attached data.
     """
     all_results = main()
-    if not all_results:
-        print("No data to save or send.")
