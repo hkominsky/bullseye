@@ -452,6 +452,7 @@ class EmailBuilder:
         Creates formatted HTML for earnings analysis display with consistent styling.
         Now includes both historical earnings and next earnings estimate.
         Updated to match current EarningsFetcher fields (removed revenue columns).
+        Now includes color coding for EPS Surprise %, 1-Day Return, and 5-Day Return.
         """
         html_parts = []
         
@@ -471,22 +472,25 @@ class EmailBuilder:
                 }
                 earnings_display.rename(columns=column_mapping, inplace=True)
                 
+                # Format EPS columns
                 for col in ['Reported EPS', 'Estimated EPS']:
                     if col in earnings_display.columns:
                         earnings_display[col] = pd.to_numeric(earnings_display[col], errors='coerce')
                         earnings_display[col] = earnings_display[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
                 
+                # Format and color-code EPS Surprise %
                 if 'EPS Surprise %' in earnings_display.columns:
                     earnings_display['EPS Surprise %'] = pd.to_numeric(earnings_display['EPS Surprise %'], errors='coerce')
                     earnings_display['EPS Surprise %'] = earnings_display['EPS Surprise %'].apply(
-                        lambda x: f"{x:.1f}%" if pd.notna(x) else "N/A"
+                        lambda x: self._format_performance_value(x, is_percentage=True, suffix='%') if pd.notna(x) else "N/A"
                     )
                 
+                # Format and color-code return columns
                 for col in ['1-Day Return', '5-Day Return']:
                     if col in earnings_display.columns:
                         earnings_display[col] = pd.to_numeric(earnings_display[col], errors='coerce')
                         earnings_display[col] = earnings_display[col].apply(
-                            lambda x: f"{x:+.1f}%" if pd.notna(x) else "N/A"
+                            lambda x: self._format_performance_value(x, is_percentage=True, suffix='%', include_sign=True) if pd.notna(x) else "N/A"
                         )
                 
                 earnings_html_table = earnings_display.to_html(
@@ -495,7 +499,7 @@ class EmailBuilder:
                     justify="center",
                     classes="earnings-table",
                     table_id="historical-earnings",
-                    escape=False
+                    escape=False  # Important: allows HTML formatting in cells
                 )
                 
                 earnings_html_table = earnings_html_table.replace(
@@ -533,7 +537,7 @@ class EmailBuilder:
             
             if forward_pe:
                 try:
-                    formatted_forward_pe = f"{float(forward_pe):.2f}x"
+                    formatted_forward_pe = f"{float(forward_pe):.2f}"
                 except (ValueError, TypeError):
                     formatted_forward_pe = "N/A"
             else:
@@ -550,7 +554,7 @@ class EmailBuilder:
             estimate_html = f'''
             <div class="info-container">
                 <div class="info-line">
-                    <span class="info-label">Expected Earnings Date:</span>
+                    <span class="info-label">Expected Earnings:</span>
                     <span class="info-value">{formatted_date}</span>
                 </div>
                 <div class="info-line">
@@ -558,11 +562,11 @@ class EmailBuilder:
                     <span class="info-value">{formatted_eps}</span>
                 </div>
                 <div class="info-line">
-                    <span class="info-label">Forward P/E Ratio:</span>
+                    <span class="info-label">Forward P/E:</span>
                     <span class="info-value">{formatted_forward_pe}</span>
                 </div>
                 <div class="info-line">
-                    <span class="info-label">PEG Ratio:</span>
+                    <span class="info-label">PEG:</span>
                     <span class="info-value">{formatted_peg_ratio}</span>
                 </div>
             </div>
@@ -573,6 +577,35 @@ class EmailBuilder:
             html_parts.append('<div class="info-container">No upcoming earnings estimate available</div>')
         
         return ''.join(html_parts)
+    
+    def _format_performance_value(self, value, is_percentage=False, suffix='', include_sign=False):
+        """
+        Format a performance value with appropriate color coding.
+        Returns HTML span with color class applied.
+        """
+        try:
+            numeric_value = float(value)
+        except (ValueError, TypeError):
+            return "N/A"
+        
+        # Determine color class
+        if numeric_value > 0:
+            color_class = "performance-positive"
+        elif numeric_value < 0:
+            color_class = "performance-negative"
+        else:
+            color_class = "performance-neutral"
+        
+        # Format the display value
+        if is_percentage:
+            if include_sign:
+                formatted_value = f"{numeric_value:+.1f}{suffix}"
+            else:
+                formatted_value = f"{numeric_value:.1f}{suffix}"
+        else:
+            formatted_value = f"{numeric_value:.2f}{suffix}"
+        
+        return f'<span class="{color_class}">{formatted_value}</span>'
     
     def get_performance_class(self, performance_pct: float) -> str:
         """

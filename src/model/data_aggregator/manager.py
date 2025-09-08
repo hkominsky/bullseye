@@ -92,8 +92,8 @@ class SECDataManager:
 
     def save_data(self, ticker: str, raw_df: pd.DataFrame, metrics_df: pd.DataFrame) -> None:
         """Save raw and metrics DataFrames to CSV files."""
-        raw_output_file = f"src/model/data_aggregator/edgar_data_filings/sec_data_processor/{ticker}_raw_financial_data.csv"
-        metrics_output_file = f"src/model/data_aggregator/edgar_data_filings/sec_data_processor/{ticker}_calculated_metrics.csv"
+        raw_output_file = f"src/model/data_aggregator/edgar_data_filings/sec_data_processor/raw_financial_data.csv"
+        metrics_output_file = f"src/model/data_aggregator/edgar_data_filings/sec_data_processor/calculated_metrics.csv"
 
         if not raw_df.empty:
             raw_df.to_csv(raw_output_file, index=False)

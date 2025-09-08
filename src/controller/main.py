@@ -34,12 +34,6 @@ def main():
 
 if __name__ == "__main__":
     """
-    Entry point for the SEC data processing script.
-
-    Output:
-        Creates per-stock CSV files in src/model/sec_data_processor/ directory:
-        - '<TICKER>_raw_financial_data.csv': Contains raw financial data
-        - '<TICKER>_calculated_metrics.csv': Contains calculated financial metrics
-        Sends per-stock emails with attached data.
+    Entry point for the SEC data processing script. Sends per-stock emails with attached data.
     """
     all_results = main()
