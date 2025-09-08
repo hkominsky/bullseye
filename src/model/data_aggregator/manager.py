@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 import pandas as pd
 
 from src.model.utils.http_client import HttpClient

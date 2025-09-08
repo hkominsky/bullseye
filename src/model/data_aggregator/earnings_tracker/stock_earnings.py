@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from dotenv import load_dotenv
 import yfinance as yf
@@ -6,6 +5,10 @@ import yfinance as yf
 load_dotenv()
 
 class EarningsFetcher:
+    """
+    Class for retrieving historical and projected earnings call data for a ticker.
+    """
+    
     def _get_stock_ticker(self, ticker: str):
         """Creates a yfinance Ticker object from the provided ticker symbol."""
         return yf.Ticker(ticker.upper())

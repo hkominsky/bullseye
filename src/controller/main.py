@@ -1,6 +1,5 @@
 import sys
 from dotenv import load_dotenv
-import pandas as pd
 
 from src.model.data_aggregator.manager import SECDataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
@@ -9,9 +8,6 @@ from src.model.utils.env_validation import EnvValidation, EnvValidationError
 def main():
     """
     Main function to process SEC financial data for specified stocks.
-
-    Raises:
-        SystemExit: If required environment variables are missing or invalid.
     """
     load_dotenv()
     required_vars = ["USER_EMAIL", "STOCKS", "USER_AGENT"]
