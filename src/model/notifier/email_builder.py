@@ -63,7 +63,6 @@ class EmailBuilder:
         self.news_limit = 5
         self.news_summary_chars = 220
 
-    # ===== STOCK DATA METHODS =====
     def fetch_stock_data(self, ticker: str) -> pd.DataFrame:
         """Fetches stock data for the current year using yfinance."""
         try:
@@ -104,7 +103,6 @@ class EmailBuilder:
             'price_change_abs': None
         }
 
-    # ===== CHART CREATION METHODS =====
     def create_chart_attachment(self, ticker: str, stock_data: pd.DataFrame) -> tuple:
         """Creates a PNG chart and returns it as bytes along with CID for email attachment."""
         try:
@@ -159,7 +157,6 @@ class EmailBuilder:
         """Create the complete plotly figure with price and volume traces."""
         fig = go.Figure()
         
-        # Add price trace
         fig.add_trace(
             go.Scatter(
                 x=stock_data.index,
@@ -172,7 +169,6 @@ class EmailBuilder:
             )
         )
         
-        # Add volume trace
         volume_binned = chart_config['volume_binned']
         fig.add_trace(
             go.Bar(
@@ -219,7 +215,6 @@ class EmailBuilder:
             'margin': dict(l=50, r=50, t=60, b=50)
         }
 
-    # ===== DATAFRAME FORMATTING METHODS =====
     def format_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Formats numeric values in DataFrame with abbreviated suffixes (K, M, B, T)."""
         df_formatted = df.copy()
@@ -262,7 +257,6 @@ class EmailBuilder:
         """Converts snake_case column names to Title Case."""
         return str(column_name).replace('_', ' ').title()
 
-    # ===== NUMERIC FORMATTING HELPERS =====
     def _format_numeric_value(self, value):
         """Format numeric values with abbreviated suffixes (K, M, B, T)."""
         if pd.isnull(value):
@@ -329,7 +323,6 @@ class EmailBuilder:
         else:
             return original_str
 
-    # ===== HTML SECTION BUILDERS =====
     def _create_introduction_html(self, ticker: str) -> str:
         """Creates the HTML introduction section for the email."""
         return f'''
@@ -351,7 +344,7 @@ class EmailBuilder:
         perf_class = self.get_performance_class(price_change_pct)
         
         return f'''
-        {ticker} Stock Performance 
+        {ticker} 
         <span style="font-size: 16px; margin-left: 15px;">
             <span style="color: #2c3e50; font-weight: normal;">{price_str}</span>
             <span class="{perf_class}" style="margin-left: 8px; font-weight: normal;">
@@ -367,7 +360,6 @@ class EmailBuilder:
         else:
             return ""
 
-    # ===== SENTIMENT ANALYSIS =====
     def _format_sentiment_analysis(self, corporate_sentiment: float, retail_sentiment: float) -> str:
         """Creates formatted HTML for sentiment analysis display."""
         corp_value, corp_class = self._get_sentiment_details(corporate_sentiment)
@@ -400,7 +392,6 @@ class EmailBuilder:
         else:
             return f"{s:+.2f}", "performance-neutral"
 
-    # ===== SECTOR PERFORMANCE =====
     def _format_sector_performance(self, ticker: str, sector_performance: dict) -> str:
         """Creates formatted HTML for sector performance display."""
         if not sector_performance or sector_performance.get("sector") == "Unknown":
@@ -458,12 +449,10 @@ class EmailBuilder:
             'opportunity': self.get_performance_class(sector_data['opportunity_cost_pct'])
         }
 
-    # ===== EARNINGS ANALYSIS =====
     def _format_earnings_analysis(self, earnings_df: pd.DataFrame, earnings_estimate: dict) -> str:
         """Creates formatted HTML for earnings analysis display."""
         html_parts = []
         
-        # Historical earnings section
         if earnings_df is None or earnings_df.empty:
             html_parts.append('<div class="info-container">No historical earnings data available</div>')
         else:
@@ -471,7 +460,6 @@ class EmailBuilder:
             if historical_html:
                 html_parts.extend(historical_html)
         
-        # Next earnings estimate section
         estimate_html = self._format_earnings_estimate(earnings_estimate)
         html_parts.extend(estimate_html)
         
@@ -509,7 +497,6 @@ class EmailBuilder:
         """Prepare earnings DataFrame for display with proper formatting."""
         earnings_display = earnings_df.copy()
         
-        # Column mapping
         column_mapping = {
             'fiscalDateEnding': 'Fiscal Date',
             'reportedEPS': 'Reported EPS',
@@ -520,15 +507,13 @@ class EmailBuilder:
         }
         earnings_display.rename(columns=column_mapping, inplace=True)
         
-        # Format EPS columns
         for col in ['Reported EPS', 'Estimated EPS']:
             if col in earnings_display.columns:
                 earnings_display[col] = pd.to_numeric(earnings_display[col], errors='coerce')
                 earnings_display[col] = earnings_display[col].apply(
-                    lambda x: f"${x:.2f}" if pd.notna(x) else "N/A"
+                    lambda x: f"{x:.2f}" if pd.notna(x) else "N/A"
                 )
         
-        # Format percentage columns with color coding
         percentage_columns = {
             'EPS Surprise %': False,  # No sign prefix
             '1-Day Return': True,     # Include sign prefix
@@ -588,7 +573,7 @@ class EmailBuilder:
         peg_ratio = earnings_estimate.get('pegRatio')
         
         formatted_date = self._format_earnings_date(next_date)
-        formatted_eps = self._format_earnings_value(estimated_eps, prefix='$', decimals=2)
+        formatted_eps = self._format_earnings_value(estimated_eps, decimals=2)
         formatted_forward_pe = self._format_earnings_value(forward_pe, decimals=2)
         formatted_peg_ratio = self._format_earnings_value(peg_ratio, decimals=2)
         
