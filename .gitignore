@@ -3,3 +3,4 @@ sec_data_processing.logs
 calculated_metrics.csv
 raw_financial_data.csv
 company_tickers.csv
+src/model/data_aggregator/edgar_data_filings/sec_data_processor/AAPL_calculated_metrics.csv

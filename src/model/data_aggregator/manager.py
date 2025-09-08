@@ -11,6 +11,7 @@ from src.model.data_aggregator.sentiment_analysis.corporate_sentiment import Cor
 from src.model.data_aggregator.sentiment_analysis.retail_sentiment import RetailSentimentAnalyzer
 from src.model.data_aggregator.ticker_news.news import TickerNews
 from src.model.data_aggregator.sector_analysis.sector_performance import SectorPerformance
+from src.model.data_aggregator.earnings_tracker.stock_earnings import EarningsFetcher
 from src.model.notifier.notifications import EmailNotifier
 from src.model.utils.models import FinancialRecord
 
@@ -36,6 +37,7 @@ class SECDataManager:
         self.corporate_sentiment_analyzer = CorporateSentimentAnalyzer()
         self.retail_sentiment_analyzer = RetailSentimentAnalyzer()
         self.ticker_news = TickerNews()
+        self.quarterly_earnings = EarningsFetcher()
         self.notifier = EmailNotifier()
 
     def get_comprehensive_financial_data(
@@ -100,21 +102,25 @@ class SECDataManager:
 
     def _validate_email_data(self, corporate_sentiment: float, retail_sentiment: float, 
                            ticker_news_df: pd.DataFrame, sector_performance_data: dict, 
-                           raw_df: pd.DataFrame, metrics_df: pd.DataFrame) -> Tuple[bool, str]:
+                           earnings_df: pd.DataFrame, raw_df: pd.DataFrame, 
+                           metrics_df: pd.DataFrame) -> Tuple[bool, str]:
         """
         Validate all data components before sending email.
         Returns (is_valid, reason_if_invalid)
         """
         # Check if DataFrames are empty
-        if raw_df.empty:
+        if raw_df is None or raw_df.empty:
             return False, "Raw financial data is empty"
-        
-        if metrics_df.empty:
+
+        if metrics_df is None or metrics_df.empty:
             return False, "Metrics data is empty"
         
         if ticker_news_df is None or ticker_news_df.empty:
             return False, "News data is empty or None"
-        
+
+        if earnings_df is None or earnings_df.empty:
+            return False, "Earnings data is empty or None"
+
         # Check sentiment values are valid numbers
         if corporate_sentiment is None or not isinstance(corporate_sentiment, (int, float)):
             return False, "Corporate sentiment is invalid or None"
@@ -138,11 +144,13 @@ class SECDataManager:
         Process financial data and sentiment for a single stock:
         - Retrieve dataframes
         - Save CSVs
-        - Send email notification (now includes sentiments + news + sector performance)
+        - Send email notification (now includes sentiments + news + sector performance + earnings estimate)
         """
         corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
         ticker_news_df = self.ticker_news.get_ticker_news(ticker)
         sector_performance_data = self.get_sector_performance(ticker)
+        earnings_df = self.quarterly_earnings.fetch_earnings(ticker)
+        earnings_estimate = self.quarterly_earnings.fetch_next_earnings(ticker)
         raw_df, metrics_df = self.get_financial_dataframes(ticker)
 
         if not raw_df.empty or not metrics_df.empty:
@@ -150,7 +158,7 @@ class SECDataManager:
 
         is_valid, validation_reason = self._validate_email_data(
             corporate_sentiment, retail_sentiment, ticker_news_df, 
-            sector_performance_data, raw_df, metrics_df
+            sector_performance_data, earnings_df, raw_df, metrics_df
         )
 
         if not is_valid:
@@ -166,6 +174,8 @@ class SECDataManager:
                 sector_performance=sector_performance_data,
                 raw_df=raw_df,
                 metrics_df=metrics_df,
+                earnings_df=earnings_df,
+                earnings_estimate=earnings_estimate,
             )
             print(f"[{ticker}] Email sent successfully")
         except Exception as e:

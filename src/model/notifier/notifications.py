@@ -37,10 +37,12 @@ class EmailNotifier:
         sector_performance: dict,
         raw_df: pd.DataFrame,
         metrics_df: pd.DataFrame,
+        earnings_df: pd.DataFrame,
+        earnings_estimate: dict,
     ):
         """
         Sends an email with all relevant data including financial records, calculated ratios, stock pricing,
-        news, sector performance, and ticker sentiment.
+        news, sector performance, earnings analysis (historical + estimate), and ticker sentiment.
         """
         html_content, chart_attachment_data = self.email_builder.build_html_content(
             raw_df=raw_df,
@@ -50,6 +52,8 @@ class EmailNotifier:
             retail_sentiment=retail_sentiment,
             news_df=news_df,
             sector_performance=sector_performance,
+            earnings_df=earnings_df,
+            earnings_estimate=earnings_estimate,
         )
 
         subject = f"{ticker} Market Brief"
@@ -70,8 +74,7 @@ class EmailNotifier:
                 FileType("image/png"),
                 Disposition("inline"),
                 ContentId(content_id)
-            )
-            
+            )                      
             message.attachment = chart_attachment
         else:
             print("No chart generated.")

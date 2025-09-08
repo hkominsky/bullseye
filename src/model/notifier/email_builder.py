@@ -335,7 +335,7 @@ class EmailBuilder:
         """
         return f'''
         <div class="intro-section">
-            <p>This comprehensive financial analysis for <strong>{ticker}</strong> includes recent market performance, current market sentiment, sector analysis, latest news developments, and detailed financial metrics to provide you with a complete investment overview.</p>
+            <p>This comprehensive financial analysis for <strong>{ticker}</strong> includes recent market performance, current market sentiment, sector analysis, earnings analysis, latest news developments, and detailed financial metrics to provide you with a complete investment overview.</p>
         </div>
         '''
 
@@ -447,6 +447,133 @@ class EmailBuilder:
         </div>
         '''
 
+    def _format_earnings_analysis(self, earnings_df: pd.DataFrame, earnings_estimate: dict) -> str:
+        """
+        Creates formatted HTML for earnings analysis display with consistent styling.
+        Now includes both historical earnings and next earnings estimate.
+        Updated to match current EarningsFetcher fields (removed revenue columns).
+        """
+        html_parts = []
+        
+        if earnings_df is None or earnings_df.empty:
+            html_parts.append('<div class="info-container">No historical earnings data available</div>')
+        else:
+            try:
+                earnings_display = earnings_df.copy()
+                
+                column_mapping = {
+                    'fiscalDateEnding': 'Fiscal Date',
+                    'reportedEPS': 'Reported EPS',
+                    'estimatedEPS': 'Estimated EPS', 
+                    'surprisePercentage': 'EPS Surprise %',
+                    'oneDayReturn': '1-Day Return',
+                    'fiveDayReturn': '5-Day Return'
+                }
+                earnings_display.rename(columns=column_mapping, inplace=True)
+                
+                for col in ['Reported EPS', 'Estimated EPS']:
+                    if col in earnings_display.columns:
+                        earnings_display[col] = pd.to_numeric(earnings_display[col], errors='coerce')
+                        earnings_display[col] = earnings_display[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+                
+                if 'EPS Surprise %' in earnings_display.columns:
+                    earnings_display['EPS Surprise %'] = pd.to_numeric(earnings_display['EPS Surprise %'], errors='coerce')
+                    earnings_display['EPS Surprise %'] = earnings_display['EPS Surprise %'].apply(
+                        lambda x: f"{x:.1f}%" if pd.notna(x) else "N/A"
+                    )
+                
+                for col in ['1-Day Return', '5-Day Return']:
+                    if col in earnings_display.columns:
+                        earnings_display[col] = pd.to_numeric(earnings_display[col], errors='coerce')
+                        earnings_display[col] = earnings_display[col].apply(
+                            lambda x: f"{x:+.1f}%" if pd.notna(x) else "N/A"
+                        )
+                
+                earnings_html_table = earnings_display.to_html(
+                    index=False, 
+                    border=0, 
+                    justify="center",
+                    classes="earnings-table",
+                    table_id="historical-earnings",
+                    escape=False
+                )
+                
+                earnings_html_table = earnings_html_table.replace(
+                    'class="earnings-table"',
+                    'class="earnings-table" style="font-size: 14px;"'
+                )
+                
+                html_parts.append('<h4 style="color: #2c3e50; margin: 20px 0 10px 0; font-size: 16px;">Historical Quarterly Earnings</h4>')
+                html_parts.append(earnings_html_table)
+                
+            except Exception as e:
+                print(f"Error formatting historical earnings data: {str(e)}")
+                html_parts.append('<div class="info-container">Error processing historical earnings data</div>')
+        
+        if earnings_estimate and (earnings_estimate.get('nextEarningsDate') or earnings_estimate.get('estimatedEPS')):
+            html_parts.append('<h4 style="color: #2c3e50; margin: 25px 0 10px 0; font-size: 16px;">Next Earnings Estimate</h4>')
+            
+            next_date = earnings_estimate.get('nextEarningsDate')
+            estimated_eps = earnings_estimate.get('estimatedEPS')
+            forward_pe = earnings_estimate.get('forwardPE')
+            peg_ratio = earnings_estimate.get('pegRatio')
+            
+            if next_date:
+                formatted_date = next_date.strftime('%Y-%m-%d') if hasattr(next_date, 'strftime') else str(next_date)
+            else:
+                formatted_date = "N/A"
+            
+            if estimated_eps:
+                try:
+                    formatted_eps = f"${float(estimated_eps):.2f}"
+                except (ValueError, TypeError):
+                    formatted_eps = str(estimated_eps) if estimated_eps else "N/A"
+            else:
+                formatted_eps = "N/A"
+            
+            if forward_pe:
+                try:
+                    formatted_forward_pe = f"{float(forward_pe):.2f}x"
+                except (ValueError, TypeError):
+                    formatted_forward_pe = "N/A"
+            else:
+                formatted_forward_pe = "N/A"
+            
+            if peg_ratio:
+                try:
+                    formatted_peg_ratio = f"{float(peg_ratio):.2f}"
+                except (ValueError, TypeError):
+                    formatted_peg_ratio = "N/A"
+            else:
+                formatted_peg_ratio = "N/A"
+            
+            estimate_html = f'''
+            <div class="info-container">
+                <div class="info-line">
+                    <span class="info-label">Expected Earnings Date:</span>
+                    <span class="info-value">{formatted_date}</span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">Estimated EPS:</span>
+                    <span class="info-value">{formatted_eps}</span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">Forward P/E Ratio:</span>
+                    <span class="info-value">{formatted_forward_pe}</span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">PEG Ratio:</span>
+                    <span class="info-value">{formatted_peg_ratio}</span>
+                </div>
+            </div>
+            '''
+            html_parts.append(estimate_html)
+        else:
+            html_parts.append('<h4 style="color: #2c3e50; margin: 25px 0 10px 0; font-size: 16px;">Next Earnings Estimate</h4>')
+            html_parts.append('<div class="info-container">No upcoming earnings estimate available</div>')
+        
+        return ''.join(html_parts)
+    
     def get_performance_class(self, performance_pct: float) -> str:
         """
         Get the performance class based on the performance percentage.
@@ -499,17 +626,19 @@ class EmailBuilder:
         corporate_sentiment: float,
         retail_sentiment: float,
         news_df: pd.DataFrame,
-        sector_performance: dict = None,
+        sector_performance: dict,
+        earnings_df: pd.DataFrame,
+        earnings_estimate: dict,
     ) -> tuple:
         """
         Build HTML content and return chart attachment info.
         Returns:
             (html_content, (chart_bytes, content_id, filename)|None)
         """
-        # 1. Introduction HTML (first in email)
+        # Introduction 
         intro_html = self._create_introduction_html(ticker)
 
-        # 2. Stock data and chart preparation (second in email)
+        # Stock
         stock_data = self.fetch_stock_data(ticker)
         stock_performance = self.get_stock_performance_data(stock_data)
         chart_bytes, content_id = self.create_chart_attachment(ticker, stock_data)
@@ -518,16 +647,19 @@ class EmailBuilder:
         stock_header = self._create_stock_header(ticker, stock_performance)
         chart_html = self._create_chart_html(content_id, ticker)
 
-        # 3. Sentiment HTML (third in email)
+        # Sentiment
         sentiment_html = self._format_sentiment_analysis(corporate_sentiment, retail_sentiment)
 
-        # 4. Sector HTML (fourth in email)
+        # Sector
         sector_html = self._format_sector_performance(ticker, sector_performance)
 
-        # 5. News HTML (fifth in email)
+        # Earnings
+        earnings_html = self._format_earnings_analysis(earnings_df, earnings_estimate)
+
+        # News
         news_html = self._build_news_html(news_df)
 
-        # 6. Financial DataFrames (sixth and seventh in email)
+        # Financial DataFrames
         filtered_raw_df = self.format_raw_df(raw_df)
         filtered_metrics_df = self.format_metrics_df(metrics_df)
 
@@ -537,7 +669,7 @@ class EmailBuilder:
         raw_html_table = raw_df_formatted.to_html(index=False, border=0, justify="center")
         metrics_html_table = metrics_df_formatted.to_html(index=False, border=0, justify="center")
 
-        # Assemble HTML in display order
+        # Assemble HTML
         html_content = f"""
         <html>
         <head>
@@ -612,19 +744,20 @@ class EmailBuilder:
             .info-container {{
                 background: #f8f9fa;
                 border-left: 4px solid #3498db;
-                padding: 15px 20px;
+                padding: 18px 20px 18px 20px;
                 margin: 15px 0;
                 border-radius: 4px;
             }}
+
             .info-line {{
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
-                margin-bottom: 8px;
+                margin-bottom: 6px;
                 font-size: 14px;
                 min-height: 20px;
             }}
-            
+
             .info-line:last-child {{
                 margin-bottom: 0;
             }}
@@ -696,6 +829,9 @@ class EmailBuilder:
 
         <h3 class="section-header">Sector Analysis</h3>
         {sector_html if sector_html else '<div class="info-container">Sector information not available</div>'}
+
+        <h3 class="section-header">Earnings Analysis</h3>
+        {earnings_html if earnings_html else '<div class="info-container">No earnings data available</div>'}
             
         <h3 class="section-header">News</h3>
         {news_html if news_html else '<div class="info-container">No recent news available</div>'}
