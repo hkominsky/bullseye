@@ -85,6 +85,12 @@ class SectorPerformance:
             raise ValueError(f"Insufficient historical data for {symbol}")
         
         performance = (hist.iloc[-1] / hist.iloc[0] - 1) * 100
+        
+        if isinstance(performance, pd.Series):
+            performance = float(performance.iloc[0])
+        else:
+            performance = float(performance)
+            
         self.logger.debug(f"Calculated 1-year performance for {symbol}: {performance:.2f}%")
         return performance
 
