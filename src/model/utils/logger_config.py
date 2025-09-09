@@ -9,7 +9,9 @@ class LoggerSetup:
     for creating consistent loggers.
     """
 
-    LOG_DIR = Path("logs")
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    LOG_DIR = PROJECT_ROOT / "logs"
+
     LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -43,7 +45,7 @@ class LoggerSetup:
         Ensure that the log directory exists.
         Creates the directory if it does not already exist.
         """
-        cls.LOG_DIR.mkdir(exist_ok=True)
+        cls.LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def _get_formatter(cls) -> logging.Formatter:
