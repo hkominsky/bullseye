@@ -1,4 +1,6 @@
 import os
+import logging
+from model.utils.logger_config import LoggerSetup
 
 
 class EnvValidationError(Exception):
@@ -11,17 +13,25 @@ class EnvValidationError(Exception):
 class EnvValidation:
     """
     Static utility class for validating and parsing environment variables.
-    
-    This class provides methods to ensure that required environment variables
-    are present and to parse specific types of environment variable values.
-    All methods are static and the class is not intended to be instantiated.
     """
+    
+    _logger = None
+    
+    @classmethod
+    def _get_logger(cls) -> logging.Logger:
+        if cls._logger is None:
+            cls._logger = LoggerSetup.setup_logger(
+                name=__name__,
+                level=logging.INFO,
+                filename="env_validation.log"
+            )
+        return cls._logger
 
     @staticmethod
     def validate_env_vars(required_vars):
-        """
-        Validate that all required environment variables are set and non-empty.
-        """
+        logger = EnvValidation._get_logger()
+        logger.info(f"Validating environment variables: {required_vars}")
+        
         missing = []
         env_values = {}
 
@@ -29,24 +39,30 @@ class EnvValidation:
             value = os.getenv(var)
             if not value:
                 missing.append(var)
+                logger.warning(f"Missing environment variable: {var}")
             else:
                 env_values[var] = value
+                logger.debug(f"Found environment variable: {var}")
 
         if missing:
-            raise EnvValidationError(
-                f"Missing required environment variables: {', '.join(missing)}"
-            )
+            error_msg = f"Missing required environment variables: {', '.join(missing)}"
+            logger.error(error_msg)
+            raise EnvValidationError(error_msg)
 
+        logger.info(f"All {len(required_vars)} required environment variables validated successfully")
         return env_values
 
     @staticmethod
     def parse_stocks(stocks_str):
-        """
-        Parse a comma-separated string of stock symbols into a list.
-        """
+        logger = EnvValidation._get_logger()
+        logger.info(f"Parsing stock symbols from string: {stocks_str}")
+        
         stocks = [s.strip().upper() for s in stocks_str.split(",") if s.strip()]
+        
         if not stocks:
-            raise EnvValidationError(
-                "STOCKS environment variable must contain at least one symbol."
-            )
+            error_msg = "STOCKS environment variable must contain at least one symbol."
+            logger.error(error_msg)
+            raise EnvValidationError(error_msg)
+        
+        logger.info(f"Successfully parsed {len(stocks)} stock symbols: {stocks}")
         return stocks
