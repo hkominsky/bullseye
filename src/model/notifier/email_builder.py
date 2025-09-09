@@ -370,7 +370,7 @@ class EmailBuilder:
         self.logger.debug(f"Creating introduction HTML for {ticker}")
         return f'''
         <div class="intro-section">
-            <p>This comprehensive financial analysis for <strong>{ticker}</strong> includes recent market performance, current market sentiment, sector analysis, earnings analysis, latest news developments, and detailed financial metrics to provide you with a complete investment overview.</p>
+            <p>This financial analysis of <strong>{ticker}</strong> looks at how it’s been performing in the market, corporate and retail sentiment, how it compares within its sector, recent earnings, news updates, and important financial metrics to give a full picture of the investment.</p>
         </div>
         '''
 
@@ -980,10 +980,6 @@ class EmailBuilder:
                 margin-bottom: 6px;
                 font-size: 14px;
                 min-height: 20px;
-            }
-
-            .info-line:last-child {
-                margin-bottom: 0;
             }
             
             .info-label {
