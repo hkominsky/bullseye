@@ -14,6 +14,7 @@ from src.model.data_aggregator.sector_analysis.sector_performance import SectorP
 from src.model.data_aggregator.earnings_tracker.stock_earnings import EarningsFetcher
 from src.model.notifier.notifications import EmailNotifier
 from src.model.utils.models import FinancialRecord
+from src.model.utils.logger_config import LoggerSetup
 
 
 class SECDataManager:
@@ -26,6 +27,7 @@ class SECDataManager:
         """
         Initialize the SECDataManager with required services.
         """
+        self.logger = LoggerSetup.setup_logger(__name__)
         self.http_client = HttpClient(user_agent)
         self.cache = FileCache()
         self.ticker_service = TickerMappingService(self.http_client, self.cache)
@@ -40,24 +42,30 @@ class SECDataManager:
         self.quarterly_earnings = EarningsFetcher()
         self.notifier = EmailNotifier()
 
+        self.logger.info("SECDataManager initialized successfully")
+
     def get_comprehensive_financial_data(
         self, ticker: str, periods: int = 8
     ) -> List[FinancialRecord]:
         """Retrieve, clean, and process financial data for a single ticker."""
         try:
+            self.logger.info(f"Starting financial data retrieval for {ticker} with {periods} periods")
             raw_records = self.extractor.extract_raw_financial_data(ticker, periods)
             cleaned_records = self.cleaner.clean_financial_records(raw_records)
             enhanced_records = self.processor.process_records_with_metrics(cleaned_records)
+            self.logger.info(f"Successfully retrieved {len(enhanced_records)} financial records for {ticker}")
             return enhanced_records
         except Exception as e:
-            print(f"Error retrieving financial data for {ticker}: {e}")
+            self.logger.error(f"Error retrieving financial data for {ticker}: {e}")
             return []
 
     def get_financial_dataframes(self, ticker: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Get financial data for a single ticker split into raw and metrics DataFrames."""
+        self.logger.info(f"Creating financial dataframes for {ticker}")
         records = self.get_comprehensive_financial_data(ticker)
 
         if not records:
+            self.logger.warning(f"No financial records found for {ticker}")
             return pd.DataFrame(), pd.DataFrame()
 
         raw_df, metrics_df = self.processor.create_split_dataframes({ticker: records})
@@ -65,23 +73,27 @@ class SECDataManager:
         cleaned_raw_df = self.cleaner.clean_dataframe(raw_df)
         cleaned_metrics_df = self.cleaner.clean_dataframe(metrics_df)
 
+        self.logger.info(f"Financial dataframes created for {ticker} - Raw: {len(cleaned_raw_df)} rows, Metrics: {len(cleaned_metrics_df)} rows")
         return cleaned_raw_df, cleaned_metrics_df
 
     def get_sentiment(self, ticker: str) -> Tuple[float, float]:
         """Get both corporate (news-based) and retail (social media-based) sentiment scores."""
+        self.logger.info(f"Fetching sentiment data for {ticker}")
         corporate_sentiment = float(self.corporate_sentiment_analyzer.fetch_sentiment(ticker))
-        #TODO: Need to get twitter dev api key for this to change.
-        #retail_sentiment = float(self.retail_sentiment_analyzer.fetch_sentiment(ticker))
         retail_sentiment = -0.15
+        self.logger.info(f"Sentiment scores for {ticker} - Corporate: {corporate_sentiment}, Retail: {retail_sentiment}")
         return corporate_sentiment, retail_sentiment
 
     def get_sector_performance(self, ticker: str) -> dict:
         """Get sector performance data for the given ticker."""
         try:
+            self.logger.info(f"Fetching sector performance for {ticker}")
             sector_analyzer = SectorPerformance(ticker)
-            return sector_analyzer.get_sector_performance()
+            performance_data = sector_analyzer.get_sector_performance()
+            self.logger.info(f"Successfully retrieved sector performance for {ticker}")
+            return performance_data
         except Exception as e:
-            print(f"Error retrieving sector performance for {ticker}: {e}")
+            self.logger.error(f"Error retrieving sector performance for {ticker}: {e}")
             return {
                 "ticker": ticker,
                 "sector": "Unknown",
@@ -107,6 +119,7 @@ class SECDataManager:
         
         for name, df in dataframes.items():
             if df is None or df.empty:
+                self.logger.warning(f"Validation failed: {name} is empty or None")
                 return False, f"{name} is empty or None"
         
         sentiments = {
@@ -116,17 +129,22 @@ class SECDataManager:
         
         for name, value in sentiments.items():
             if value is None or not isinstance(value, (int, float)):
+                self.logger.warning(f"Validation failed: {name} is invalid or None")
                 return False, f"{name} is invalid or None"
         
         if not sector_performance_data or not isinstance(sector_performance_data, dict):
+            self.logger.warning("Validation failed: Sector performance data is empty or invalid")
             return False, "Sector performance data is empty or invalid"
         
+        self.logger.info("All email data validation checks passed")
         return True, ""
 
     def process_stock(self, ticker: str) -> None:
         """
         Validates stock data before sending information then sends as an email.
         """
+        self.logger.info(f"Starting stock processing for {ticker}")
+        
         corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
         ticker_news_df = self.ticker_news.get_ticker_news(ticker)
         sector_performance_data = self.get_sector_performance(ticker)
@@ -140,7 +158,7 @@ class SECDataManager:
         )
 
         if not is_valid:
-            print(f"[{ticker}] Email not sent: {validation_reason}")
+            self.logger.warning(f"Email not sent for {ticker}: {validation_reason}")
             return
 
         try:
@@ -155,6 +173,6 @@ class SECDataManager:
                 earnings_df=earnings_df,
                 earnings_estimate=earnings_estimate,
             )
-            print(f"[{ticker}] Email sent successfully")
+            self.logger.info(f"Email sent successfully for {ticker}")
         except Exception as e:
-            print(f"[{ticker}] Email not sent: Error occurred during email sending - {e}")
+            self.logger.error(f"Email not sent for {ticker}: Error occurred during email sending - {e}")

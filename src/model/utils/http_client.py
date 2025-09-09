@@ -1,7 +1,7 @@
 import logging
 import requests
 from requests.exceptions import HTTPError, Timeout, ConnectionError, RequestException
-from model.utils.logger_config import LoggerSetup
+from src.model.utils.logger_config import LoggerSetup
 
 
 class HttpClient:

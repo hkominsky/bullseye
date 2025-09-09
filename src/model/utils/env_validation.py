@@ -1,6 +1,6 @@
 import os
 import logging
-from model.utils.logger_config import LoggerSetup
+from src.model.utils.logger_config import LoggerSetup
 
 
 class EnvValidationError(Exception):
