@@ -155,9 +155,9 @@ class SECDataManager:
             "Email sent successfully"
         ]
 
-    def process_stock(self, ticker: str, progress_tracker: ProgressTracker) -> None:
+    def process_ticker(self, ticker: str, progress_tracker: ProgressTracker) -> None:
         """
-        Validates stock data before sending information then sends as an email.
+        Validates ticker data before sending information then sends as an email.
         Uses the provided progress tracker to report progress.
         """
         

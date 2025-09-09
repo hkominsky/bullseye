@@ -9,19 +9,19 @@ from src.model.utils.progress_tracker import ProgressTracker
 
 def main():
     """
-    Main function to process SEC financial data for specified stocks.
+    Main function to process SEC financial data for specified tickers.
     """
     logger = LoggerSetup.setup_logger(__name__)
     logger.info("Starting SEC data processing application")
     
     load_dotenv()
-    required_vars = ["USER_EMAIL", "STOCKS", "USER_AGENT"]
+    required_vars = ["USER_EMAIL", "TICKERS", "USER_AGENT"]
 
     try:
         logger.info("Validating environment variables")
         env = EnvValidation.validate_env_vars(required_vars)
-        STOCKS = EnvValidation.parse_stocks(env["STOCKS"])
-        logger.info(f"Environment validation successful. Processing {len(STOCKS)} stocks: {STOCKS}")
+        TICKERS = EnvValidation.parse_tickers(env["TICKERS"])
+        logger.info(f"Environment validation successful. Processing {len(TICKERS)} tickers: {TICKERS}")
     except EnvValidationError as e:
         logger.error(f"Environment validation failed: {e}")
         sys.exit(1)
@@ -29,19 +29,17 @@ def main():
     manager = SECDataManager(env["USER_AGENT"])
     results = {}
 
-    for stock in STOCKS:
-        logger.info(f"Processing stock: {stock}")
-        print(f"Starting stock processing for {stock}")
-        
+    for ticker in TICKERS:
+        logger.info(f"Processing ticker: {ticker}")        
         progress_tracker = ProgressTracker()
-        progress_tracker.start(stock)
+        progress_tracker.start(ticker)
         
         try:
-            manager.process_stock(stock, progress_tracker)
-            logger.info(f"Successfully completed processing for {stock}")
-            progress_tracker.complete(stock)
+            manager.process_ticker(ticker, progress_tracker)
+            logger.info(f"Successfully completed processing for {ticker}")
+            progress_tracker.complete(ticker)
         except Exception as e:
-            logger.error(f"Failed to process stock {stock}: {e}")
+            logger.error(f"Failed to process ticker {ticker}: {e}")
 
     logger.info("SEC data processing application completed")
     return results
@@ -49,6 +47,6 @@ def main():
 
 if __name__ == "__main__":
     """
-    Entry point for the SEC data processing script. Sends per-stock emails with attached data.
+    Entry point for the SEC data processing script. Sends per-ticker emails with attached data.
     """
     all_results = main()

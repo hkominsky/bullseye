@@ -53,16 +53,16 @@ class EnvValidation:
         return env_values
 
     @staticmethod
-    def parse_stocks(stocks_str):
+    def parse_tickers(tickers_str):
         logger = EnvValidation._get_logger()
-        logger.info(f"Parsing stock symbols from string: {stocks_str}")
+        logger.info(f"Parsing ticker symbols from string: {tickers_str}")
         
-        stocks = [s.strip().upper() for s in stocks_str.split(",") if s.strip()]
+        tickers = [s.strip().upper() for s in tickers_str.split(",") if s.strip()]
         
-        if not stocks:
-            error_msg = "STOCKS environment variable must contain at least one symbol."
+        if not tickers:
+            error_msg = "TICKERS environment variable must contain at least one symbol."
             logger.error(error_msg)
             raise EnvValidationError(error_msg)
         
-        logger.info(f"Successfully parsed {len(stocks)} stock symbols: {stocks}")
-        return stocks
+        logger.info(f"Successfully parsed {len(tickers)} ticker symbols: {tickers}")
+        return tickers
