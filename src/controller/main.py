@@ -10,7 +10,7 @@ def main():
     """
     Main function to process SEC financial data for specified stocks.
     """
-    logger = LoggerSetup.setup_logger(__name__, filename="main.log")
+    logger = LoggerSetup.setup_logger(__name__)
     logger.info("Starting SEC data processing application")
     
     load_dotenv()
@@ -38,7 +38,7 @@ def main():
 
     logger.info("SEC data processing application completed")
     return results
-
+ 
 
 if __name__ == "__main__":
     """
