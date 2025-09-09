@@ -8,7 +8,6 @@ import plotly.io as pio
 class EmailBuilder:
     """
     Handles the building and formatting of email content from SEC financial data.
-    Uses CID attachments for reliable image display without needing external CDN.
     """
     
     def __init__(self):
@@ -515,9 +514,9 @@ class EmailBuilder:
                 )
         
         percentage_columns = {
-            'EPS Surprise %': False,  # No sign prefix
-            '1-Day Return': True,     # Include sign prefix
-            '5-Day Return': True      # Include sign prefix
+            'EPS Surprise %': False,
+            '1-Day Return': True,
+            '5-Day Return': True
         }
         
         for col, include_sign in percentage_columns.items():

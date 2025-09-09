@@ -90,61 +90,42 @@ class SECDataManager:
                 "sector_1y_performance_pct": 0.0,
             }
 
-    def save_data(self, ticker: str, raw_df: pd.DataFrame, metrics_df: pd.DataFrame) -> None:
-        """Save raw and metrics DataFrames to CSV files."""
-        raw_output_file = f"src/model/data_aggregator/edgar_data_filings/sec_data_processor/raw_financial_data.csv"
-        metrics_output_file = f"src/model/data_aggregator/edgar_data_filings/sec_data_processor/calculated_metrics.csv"
-
-        if not raw_df.empty:
-            raw_df.to_csv(raw_output_file, index=False)
-        if not metrics_df.empty:
-            metrics_df.to_csv(metrics_output_file, index=False)
-
     def _validate_email_data(self, corporate_sentiment: float, retail_sentiment: float, 
-                           ticker_news_df: pd.DataFrame, sector_performance_data: dict, 
-                           earnings_df: pd.DataFrame, raw_df: pd.DataFrame, 
-                           metrics_df: pd.DataFrame) -> Tuple[bool, str]:
+                        ticker_news_df: pd.DataFrame, sector_performance_data: dict, 
+                        earnings_df: pd.DataFrame, raw_df: pd.DataFrame, 
+                        metrics_df: pd.DataFrame) -> Tuple[bool, str]:
         """
         Validate all data components before sending email.
         Returns (is_valid, reason_if_invalid)
         """
-        # Check if DataFrames are empty
-        if raw_df is None or raw_df.empty:
-            return False, "Raw financial data is empty"
-
-        if metrics_df is None or metrics_df.empty:
-            return False, "Metrics data is empty"
+        dataframes = {
+            "Raw financial data": raw_df,
+            "Metrics data": metrics_df,
+            "News data": ticker_news_df,
+            "Earnings data": earnings_df
+        }
         
-        if ticker_news_df is None or ticker_news_df.empty:
-            return False, "News data is empty or None"
-
-        if earnings_df is None or earnings_df.empty:
-            return False, "Earnings data is empty or None"
-
-        # Check sentiment values are valid numbers
-        if corporate_sentiment is None or not isinstance(corporate_sentiment, (int, float)):
-            return False, "Corporate sentiment is invalid or None"
+        for name, df in dataframes.items():
+            if df is None or df.empty:
+                return False, f"{name} is empty or None"
         
-        if retail_sentiment is None or not isinstance(retail_sentiment, (int, float)):
-            return False, "Retail sentiment is invalid or None"
+        sentiments = {
+            "Corporate sentiment": corporate_sentiment,
+            "Retail sentiment": retail_sentiment
+        }
         
-        # Check sector performance data
+        for name, value in sentiments.items():
+            if value is None or not isinstance(value, (int, float)):
+                return False, f"{name} is invalid or None"
+        
         if not sector_performance_data or not isinstance(sector_performance_data, dict):
             return False, "Sector performance data is empty or invalid"
-        
-        # Check if sector performance has required keys
-        required_keys = ["ticker", "sector", "sector_etf", "ticker_1y_performance_pct", "sector_1y_performance_pct"]
-        if not all(key in sector_performance_data for key in required_keys):
-            return False, "Sector performance data is missing required fields"
         
         return True, ""
 
     def process_stock(self, ticker: str) -> None:
         """
-        Process financial data and sentiment for a single stock:
-        - Retrieve dataframes
-        - Save CSVs
-        - Send email notification (now includes sentiments + news + sector performance + earnings estimate)
+        Validates stock data before sending information then sends as an email.
         """
         corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
         ticker_news_df = self.ticker_news.get_ticker_news(ticker)
@@ -152,9 +133,6 @@ class SECDataManager:
         earnings_df = self.quarterly_earnings.fetch_earnings(ticker)
         earnings_estimate = self.quarterly_earnings.fetch_next_earnings(ticker)
         raw_df, metrics_df = self.get_financial_dataframes(ticker)
-
-        if not raw_df.empty or not metrics_df.empty:
-            self.save_data(ticker, raw_df, metrics_df)
 
         is_valid, validation_reason = self._validate_email_data(
             corporate_sentiment, retail_sentiment, ticker_news_df, 

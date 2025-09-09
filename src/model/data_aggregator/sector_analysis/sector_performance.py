@@ -20,7 +20,7 @@ SECTOR_ETF_MAP = {
 
 class SectorPerformance:
     """
-    A class to analyze the 1-year performance of both a stock ticker and its corresponding sector ETF.
+    Analyzes the 1-year performance of both a stock ticker and a corresponding sector ETF.
     """
 
     def __init__(self, ticker: str):

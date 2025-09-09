@@ -8,22 +8,12 @@ load_dotenv()
 
 class RetailSentimentAnalyzer:
     """
-    A sentiment analysis tool for financial markets that:
-    - Fetches tweets related to a given ticker symbol.
-    - Computes sentiment scores for the tweets using VADER.
-    - Returns the average sentiment score.
-    
-    Example:
-        analyzer = RetailSentimentAnalyzer()
-        sentiment = analyzer.fetch_sentiment("AAPL", 100)
-        print(sentiment)
+    Class allows for the computation of retail sentiment from Twitter API data relating to the ticker.
     """
 
     def __init__(self):
         """
-        Initialize Twitter API client and sentiment analyzer using environment variables.
-        Raises:
-            ValueError: If any required API credentials are missing.
+        Initialize Twitter API client and sentiment analyzer.
         """
         api_key = os.getenv("TWITTER_API_KEY")
         api_secret = os.getenv("TWITTER_API_SECRET")
@@ -41,10 +31,7 @@ class RetailSentimentAnalyzer:
 
     def fetch_sentiment(self, ticker: str) -> float:
         """
-        Orchestrates the sentiment analysis process:
-        - Fetches tweets for the given ticker.
-        - Computes sentiment scores.
-        - Returns the average sentiment score.
+        Fetches relevant scores to compute sentiment score then returns it.
         """
 
         tweets_df = self.fetch_tweets(ticker, self.num_tweets)

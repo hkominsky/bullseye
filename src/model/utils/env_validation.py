@@ -2,13 +2,26 @@ import os
 
 
 class EnvValidationError(Exception):
+    """
+    Custom exception raised when environment variable validation fails.
+    """
     pass
 
 
 class EnvValidation:
+    """
+    Static utility class for validating and parsing environment variables.
+    
+    This class provides methods to ensure that required environment variables
+    are present and to parse specific types of environment variable values.
+    All methods are static and the class is not intended to be instantiated.
+    """
 
     @staticmethod
     def validate_env_vars(required_vars):
+        """
+        Validate that all required environment variables are set and non-empty.
+        """
         missing = []
         env_values = {}
 
@@ -28,6 +41,9 @@ class EnvValidation:
 
     @staticmethod
     def parse_stocks(stocks_str):
+        """
+        Parse a comma-separated string of stock symbols into a list.
+        """
         stocks = [s.strip().upper() for s in stocks_str.split(",") if s.strip()]
         if not stocks:
             raise EnvValidationError(

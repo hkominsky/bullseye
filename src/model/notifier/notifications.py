@@ -8,13 +8,7 @@ from src.model.notifier.email_builder import EmailBuilder
 
 class EmailNotifier:
     """
-    Email notifier that sends SEC financial data reports via SendGrid Web API,
-    using CID attachments for reliable image display without external CDN.
-
-    Expects the following environment variables:
-        SENDGRID_API_KEY: SendGrid API key
-        SENDER_EMAIL:    Verified "from" email address in SendGrid
-        EMAIL_TO:        Recipient email address
+    Email notifier that sends SEC financial data reports via SendGrid.
     """
 
     def __init__(self):
@@ -41,8 +35,7 @@ class EmailNotifier:
         earnings_estimate: dict,
     ):
         """
-        Sends an email with all relevant data including financial records, calculated ratios, stock pricing,
-        news, sector performance, earnings analysis (historical + estimate), and ticker sentiment.
+        Handles sending the email generated from the EmailBuilder.
         """
         html_content, chart_attachment_data = self.email_builder.build_html_content(
             raw_df=raw_df,

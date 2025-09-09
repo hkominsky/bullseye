@@ -6,10 +6,8 @@ from typing import Dict, Any
 
 class CacheInterface(ABC):
     """
-    Abstract base class defining the interface for cache implementations.
-    
-    This interface provides a contract for cache operations including
-    expiration checking, reading, and writing cache data.
+    Abstract base class defining the interface for cache implementations 
+    including expiration checking, reading, and writing cache data.
     """
     
     @abstractmethod

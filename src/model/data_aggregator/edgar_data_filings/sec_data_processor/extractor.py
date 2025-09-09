@@ -273,12 +273,10 @@ class SECDataExtractor:
             date_obj = datetime.fromisoformat(end_date)
             year = date_obj.year
             
-            # Try to extract period from frame first
             frame_period = self._extract_period_from_frame(frame)
             if frame_period:
                 return f"{year} {frame_period}"
             
-            # Fall back to form type and date-based logic
             period = self._determine_period_from_form_and_date(form_type, date_obj.month)
             return f"{year} {period}" if period != "Unknown" else "Unknown"
             

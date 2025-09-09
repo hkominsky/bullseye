@@ -4,12 +4,23 @@ from requests.exceptions import HTTPError, Timeout, ConnectionError, RequestExce
 
 logger = logging.getLogger(__name__)
 
+
 class HttpClient:
+    """
+    A simple HTTP client wrapper with built-in error handling and logging.
+    """
+
     def __init__(self, user_agent: str, timeout: int = 10):
+        """
+        Initialize the HTTP client with configuration.
+        """
         self.headers = {"User-Agent": user_agent}
         self.timeout = timeout
     
     def get(self, url: str) -> requests.Response | None:
+        """
+        Make an HTTP GET request with comprehensive error handling.
+        """
         try:
             response = requests.get(url, headers=self.headers, timeout=self.timeout)
             response.raise_for_status()

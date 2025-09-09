@@ -9,6 +9,7 @@ def main():
     """
     Main function to process SEC financial data for specified stocks.
     """
+    
     load_dotenv()
     required_vars = ["USER_EMAIL", "STOCKS", "USER_AGENT"]
 

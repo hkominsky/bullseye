@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 class TickerNews:
     """
     Class for retrieving news articles for a specified ticker using Finnhub API.
-    Free tier: 60 calls/minute, much better than Alpha Vantage's 25/day.
     """
     
     def __init__(self):
@@ -21,7 +20,6 @@ class TickerNews:
     def get_ticker_news(self, ticker: str) -> pd.DataFrame:
         """
         Fetch the top 5 recent news headlines for a given ticker.
-        Returns a DataFrame with columns: 'headline', 'summary', 'url', 'published_at'.
         """
         try:
             data = self._fetch_api_data(ticker)
@@ -30,7 +28,7 @@ class TickerNews:
                 print(f"No news found for {ticker}")
                 return pd.DataFrame()
             
-            news_articles = self._process_news_articles(data, ticker)
+            news_articles = self._process_news_articles(data)
             
             df = pd.DataFrame(news_articles)
             return df
@@ -58,7 +56,7 @@ class TickerNews:
         response.raise_for_status()
         return response.json()
     
-    def _process_news_articles(self, data: list, ticker: str) -> list:
+    def _process_news_articles(self, data: list) -> list:
         """
         Process raw news articles into structured format.
         Sorts by date and keeps top 5.

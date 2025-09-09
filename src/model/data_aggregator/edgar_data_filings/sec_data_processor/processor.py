@@ -103,7 +103,6 @@ class SECDataProcessor:
                 growth_data[ticker] = []
                 continue
                 
-            # Sort chronologically for proper growth calculations
             sorted_records = sorted(records, key=lambda x: x.date)
             growth_metrics = []
             
@@ -112,7 +111,6 @@ class SECDataProcessor:
                 
                 growth_metric = GrowthMetrics(ticker=ticker, period=current.period)
                 
-                # Calculate all growth metrics
                 self._calculate_qoq_growth(growth_metric, current, sorted_records[i-1])
                 self._calculate_yoy_growth(growth_metric, current, sorted_records, i)
                 self._calculate_revenue_acceleration(growth_metric, sorted_records, i)
@@ -367,7 +365,6 @@ class SECDataProcessor:
         previous = sorted_records[current_index - 1]
         prev_period = sorted_records[current_index - 2]
         
-        # Calculate current and previous period growth rates
         current_growth = self._calculate_period_growth(current.revenue, previous.revenue)
         prev_growth = self._calculate_period_growth(previous.revenue, prev_period.revenue)
         
@@ -377,11 +374,9 @@ class SECDataProcessor:
     def _determine_trends(self, growth_metric: GrowthMetrics, 
                          sorted_records: list[FinancialRecord], current_index: int) -> None:
         """Determine revenue and profitability trends over recent periods"""
-        # Get last 3 periods of data (including current)
         start_index = max(0, current_index - 2)
         recent_records = sorted_records[start_index:current_index + 1]
         
-        # Extract values for trend analysis
         revenue_values = [r.revenue for r in recent_records if r.revenue is not None]
         profitability_values = [r.net_margin for r in recent_records if r.net_margin is not None]
         
@@ -395,7 +390,6 @@ class SECDataProcessor:
         
         total_assets = record.total_assets
         
-        # Calculate components safely
         wc_to_assets = self._safe_ratio(record.working_capital, total_assets)
         re_to_assets = self._safe_ratio(record.shareholders_equity, total_assets)
         ebit_to_assets = self._safe_ratio(record.operating_income, total_assets)
@@ -409,7 +403,6 @@ class SECDataProcessor:
         """Calculate Piotroski F-Score (0-8 scale) for fundamental analysis"""
         score = 0
         
-        # Profitability criteria (4 points possible)
         if self._is_positive(record.net_income):
             score += 1
         if self._is_positive(record.operating_cash_flow):
@@ -420,13 +413,11 @@ class SECDataProcessor:
             record.operating_cash_flow > record.net_income):
             score += 1
         
-        # Leverage and liquidity criteria (2 points possible)
         if self._is_above_threshold(record.current_ratio, 1.5):
             score += 1
         if self._is_below_threshold(record.debt_to_equity, 0.4):
             score += 1
         
-        # Operating efficiency criteria (2 points possible)
         if self._is_above_threshold(record.asset_turnover, 0.5):
             score += 1
         if self._is_above_threshold(record.gross_margin, 20):
@@ -497,7 +488,6 @@ class SECDataProcessor:
             return None
         return ((current - previous) / previous) * 100
     
-    # Utility methods for safe calculations
     def _both_not_none(self, data: dict, key1: str, key2: str) -> bool:
         """Check if both keys exist and are not None"""
         return data.get(key1) is not None and data.get(key2) is not None

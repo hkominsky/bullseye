@@ -6,12 +6,7 @@ from src.model.data_aggregator.edgar_data_filings.ticker_retriever.cache import 
 
 class TickerMappingService:
     """
-    Service for retrieving and caching mappings between stock tickers and CIKs
-    (Central Index Key identifiers) from the SEC.
-
-    This service fetches the official ticker-to-CIK mapping from the SEC,
-    caches it locally in JSON format, and provides lookup functionality.
-    It uses a configurable cache backend that implements the CacheInterface.
+    Service for retrieving and caching mappings between stock tickers and CIKs from the SEC.
     """
 
     SEC_TICKER_URL = "https://www.sec.gov/files/company_tickers.json"
@@ -33,7 +28,7 @@ class TickerMappingService:
         """
         Retrieve the mapping of stock tickers to CIK identifiers.
 
-        If the cache is expired (or missing), the data is refreshed from the SEC.
+        If the cache is expired (or missing), the data is refreshed.
         Otherwise, the mapping is read directly from the local cache.
         """
         if self.cache.is_expired(cache_file, refresh_days):
@@ -44,10 +39,7 @@ class TickerMappingService:
 
     def _refresh_cache(self, cache_file: str) -> None:
         """
-        Refresh the cached ticker data from the SEC.
-
-        This method fetches the latest ticker-to-CIK mapping and overwrites
-        the local cache file.
+        Fetches the latest ticker-to-CIK mapping and overwrites the local cache file.
         """
         response = self.http_client.get(self.SEC_TICKER_URL)
         self.cache.write(cache_file, response.text)
