@@ -977,7 +977,6 @@ class EmailBuilder:
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
-                margin-bottom: 6px;
                 font-size: 14px;
                 min-height: 20px;
             }

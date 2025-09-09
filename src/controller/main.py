@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from src.model.data_aggregator.manager import SECDataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.utils.logger_config import LoggerSetup
+from src.model.utils.progress_tracker import ProgressTracker
 
 
 def main():
@@ -30,15 +31,21 @@ def main():
 
     for stock in STOCKS:
         logger.info(f"Processing stock: {stock}")
+        print(f"Starting stock processing for {stock}")
+        
+        progress_tracker = ProgressTracker()
+        progress_tracker.start(stock)
+        
         try:
-            manager.process_stock(stock)
+            manager.process_stock(stock, progress_tracker)
             logger.info(f"Successfully completed processing for {stock}")
+            progress_tracker.complete(stock)
         except Exception as e:
             logger.error(f"Failed to process stock {stock}: {e}")
 
     logger.info("SEC data processing application completed")
     return results
- 
+
 
 if __name__ == "__main__":
     """

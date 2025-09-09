@@ -15,6 +15,7 @@ from src.model.data_aggregator.earnings_tracker.stock_earnings import EarningsFe
 from src.model.notifier.notifications import EmailNotifier
 from src.model.utils.models import FinancialRecord
 from src.model.utils.logger_config import LoggerSetup
+from src.model.utils.progress_tracker import ProgressTracker
 
 
 class SECDataManager:
@@ -139,29 +140,69 @@ class SECDataManager:
         self.logger.info("All email data validation checks passed")
         return True, ""
 
-    def process_stock(self, ticker: str) -> None:
+    def get_processing_steps(self) -> List[str]:
+        """
+        Returns the list of processing steps for progress tracking.
+        """
+        return [
+            "Sentiment data retrieved",
+            "News data retrieved", 
+            "Sector performance retrieved",
+            "Earnings data retrieved",
+            "Next earnings estimate retrieved",
+            "Financial dataframes created",
+            "Email data validated",
+            "Email sent successfully"
+        ]
+
+    def process_stock(self, ticker: str, progress_tracker: ProgressTracker) -> None:
         """
         Validates stock data before sending information then sends as an email.
+        Uses the provided progress tracker to report progress.
         """
-        self.logger.info(f"Starting stock processing for {ticker}")
         
-        corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
-        ticker_news_df = self.ticker_news.get_ticker_news(ticker)
-        sector_performance_data = self.get_sector_performance(ticker)
-        earnings_df = self.quarterly_earnings.fetch_earnings(ticker)
-        earnings_estimate = self.quarterly_earnings.fetch_next_earnings(ticker)
-        raw_df, metrics_df = self.get_financial_dataframes(ticker)
-
-        is_valid, validation_reason = self._validate_email_data(
-            corporate_sentiment, retail_sentiment, ticker_news_df, 
-            sector_performance_data, earnings_df, raw_df, metrics_df
-        )
-
-        if not is_valid:
-            self.logger.warning(f"Email not sent for {ticker}: {validation_reason}")
-            return
-
+        # Get progress steps and set total for percentage calculation
+        progress_steps = self.get_processing_steps()
+        if not progress_tracker.total_steps:
+            progress_tracker.total_steps = len(progress_steps)
+        
         try:
+            # Get sentiment data
+            corporate_sentiment, retail_sentiment = self.get_sentiment(ticker)
+            progress_tracker.step(progress_steps[0])
+            
+            # Get news data
+            ticker_news_df = self.ticker_news.get_ticker_news(ticker)
+            progress_tracker.step(progress_steps[1])
+            
+            # Get sector performance
+            sector_performance_data = self.get_sector_performance(ticker)
+            progress_tracker.step(progress_steps[2])
+            
+            # Get earnings data
+            earnings_df = self.quarterly_earnings.fetch_earnings(ticker)
+            progress_tracker.step(progress_steps[3])
+            
+            # Get next earnings estimate
+            earnings_estimate = self.quarterly_earnings.fetch_next_earnings(ticker)
+            progress_tracker.step(progress_steps[4])
+            
+            # Get financial dataframes
+            raw_df, metrics_df = self.get_financial_dataframes(ticker)
+            progress_tracker.step(progress_steps[5])
+            
+            # Validate all data
+            is_valid, validation_reason = self._validate_email_data(
+                corporate_sentiment, retail_sentiment, ticker_news_df, 
+                sector_performance_data, earnings_df, raw_df, metrics_df
+            )            
+            if not is_valid:
+                print(f"Email not sent for {ticker}: {validation_reason}")
+                return
+            else:
+                progress_tracker.step(progress_steps[6])
+            
+            # Send email
             self.notifier.send_email(
                 ticker=ticker,
                 corporate_sentiment=corporate_sentiment,
@@ -173,6 +214,8 @@ class SECDataManager:
                 earnings_df=earnings_df,
                 earnings_estimate=earnings_estimate,
             )
-            self.logger.info(f"Email sent successfully for {ticker}")
+            progress_tracker.step(progress_steps[7])
+            
         except Exception as e:
-            self.logger.error(f"Email not sent for {ticker}: Error occurred during email sending - {e}")
+            print(f"Processing failed for {ticker}: {e}")
+            raise
