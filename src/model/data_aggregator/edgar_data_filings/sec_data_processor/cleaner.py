@@ -316,7 +316,7 @@ class SECDataCleaner:
         df = self._remove_duplicate_rows(df)
         final_rows = len(df)
         
-        self.logger.info(f"DataFrame cleaning complete - rows: {original_rows} → {final_rows}")
+        self.logger.info(f"DataFrame cleaning complete - rows: {original_rows} -> {final_rows}")
         return df
     
     def _clean_individual_record(self, record: FinancialRecord) -> Optional[FinancialRecord]:
@@ -366,7 +366,7 @@ class SECDataCleaner:
                 normalized_date = self._normalize_date(date_val)
                 if normalized_date:
                     record_dict['date'] = normalized_date
-                    self.logger.debug(f"Normalized date for {ticker}: {date_val} → {normalized_date}")
+                    self.logger.debug(f"Normalized date for {ticker}: {date_val} -> {normalized_date}")
                 else:
                     self.logger.warning(f"Could not normalize date for {ticker}: {date_val}")
                     return False
@@ -523,7 +523,7 @@ class SECDataCleaner:
             try:
                 dt = datetime.strptime(date_str, fmt)
                 normalized = dt.strftime('%Y-%m-%d')
-                self.logger.debug(f"Normalized date: {date_str} → {normalized}")
+                self.logger.debug(f"Normalized date: {date_str} -> {normalized}")
                 return normalized
             except ValueError:
                 continue

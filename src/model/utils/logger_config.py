@@ -9,7 +9,7 @@ class LoggerSetup:
     for creating consistent loggers.
     """
 
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
     LOG_DIR = PROJECT_ROOT / "logs"
 
     LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
