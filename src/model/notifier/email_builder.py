@@ -3,6 +3,7 @@ import numpy as np
 import yfinance as yf
 import plotly.graph_objects as go
 import plotly.io as pio
+from src.model.utils.logger_config import LoggerSetup
 
 
 class EmailBuilder:
@@ -11,6 +12,8 @@ class EmailBuilder:
     """
     
     def __init__(self):
+        self.logger = LoggerSetup.setup_logger(__name__)
+        
         self.raw_df_mappings = {
             "cost_of_revenue": "COGS",
             "research_and_development": "R&D",
@@ -61,20 +64,31 @@ class EmailBuilder:
         self.all_custom_names = set(self.raw_df_mappings.values()) | set(self.metrics_df_mappings.values())
         self.news_limit = 5
         self.news_summary_chars = 220
+        
+        self.logger.info(f"EmailBuilder initialized with {len(self.raw_df_mappings)} raw mappings and {len(self.metrics_df_mappings)} metrics mappings")
 
     def fetch_stock_data(self, ticker: str) -> pd.DataFrame:
         """Fetches stock data for the current year using yfinance."""
         try:
+            self.logger.info(f"Fetching 1-year stock data for {ticker}")
             stock = yf.Ticker(ticker)
             hist = stock.history(period='1y')
-            return hist if not hist.empty else pd.DataFrame()
+            
+            if not hist.empty:
+                self.logger.info(f"Successfully fetched {len(hist)} days of stock data for {ticker}")
+                return hist
+            else:
+                self.logger.warning(f"No stock data returned for {ticker}")
+                return pd.DataFrame()
+                
         except Exception as e:
-            print(f"Error fetching data for {ticker}: {str(e)}")
+            self.logger.error(f"Error fetching stock data for {ticker}: {str(e)}")
             return pd.DataFrame()
 
     def get_stock_performance_data(self, stock_data: pd.DataFrame) -> dict:
         """Calculate stock performance metrics from stock data."""
         if stock_data.empty:
+            self.logger.warning("Empty stock data provided for performance calculation")
             return self._empty_performance_dict()
         
         try:
@@ -83,14 +97,18 @@ class EmailBuilder:
             price_change_abs = current_price - year_ago_price
             price_change_pct = (price_change_abs / year_ago_price) * 100
             
-            return {
+            performance_data = {
                 'current_price': current_price,
                 'year_ago_price': year_ago_price,
                 'price_change_pct': price_change_pct,
                 'price_change_abs': price_change_abs
             }
+            
+            self.logger.info(f"Stock performance calculated - Current: ${current_price:.2f}, 1Y change: {price_change_pct:+.2f}%")
+            return performance_data
+            
         except Exception as e:
-            print(f"Error calculating stock performance: {str(e)}")
+            self.logger.error(f"Error calculating stock performance: {str(e)}")
             return self._empty_performance_dict()
 
     def _empty_performance_dict(self) -> dict:
@@ -106,18 +124,21 @@ class EmailBuilder:
         """Creates a PNG chart and returns it as bytes along with CID for email attachment."""
         try:
             if stock_data.empty:
+                self.logger.warning(f"Cannot create chart for {ticker}: empty stock data")
                 return None, None
             
+            self.logger.info(f"Creating stock chart for {ticker}")
             chart_config = self._prepare_chart_config(stock_data)
             fig = self._create_plotly_figure(stock_data, chart_config)
             
             img_bytes = pio.to_image(fig, format='png', width=1200, height=500, scale=2)
             content_id = f"stock_chart_{ticker.lower()}"
             
+            self.logger.info(f"Successfully created chart attachment for {ticker} ({len(img_bytes)} bytes)")
             return img_bytes, content_id
             
         except Exception as e:
-            print(f"Error creating chart: {str(e)}")
+            self.logger.error(f"Error creating chart for {ticker}: {str(e)}")
             return None, None
 
     def _prepare_chart_config(self, stock_data: pd.DataFrame) -> dict:
@@ -128,6 +149,8 @@ class EmailBuilder:
         
         line_color = '#22c55e' if yearly_return >= 0 else '#ef4444'
         fill_color = 'rgba(34, 197, 94, 0.1)' if yearly_return >= 0 else 'rgba(239, 68, 68, 0.1)'
+        
+        self.logger.debug(f"Chart colors selected - Line: {line_color}, Fill: {fill_color} (yearly return: {yearly_return:+.2%})")
         
         volume_binned = self._prepare_volume_data(stock_data)
         
@@ -150,10 +173,12 @@ class EmailBuilder:
         bin_centers = bins[:-1] + (bins[1] - bins[0]) / 2
         volume_binned.index = bin_centers
         
+        self.logger.debug(f"Prepared volume data with {len(volume_binned)} weekly bins")
         return volume_binned
 
     def _create_plotly_figure(self, stock_data: pd.DataFrame, chart_config: dict) -> go.Figure:
         """Create the complete plotly figure with price and volume traces."""
+        self.logger.debug("Creating plotly figure with price and volume traces")
         fig = go.Figure()
         
         fig.add_trace(
@@ -182,6 +207,7 @@ class EmailBuilder:
         )
         
         fig.update_layout(**self._get_chart_layout(stock_data, volume_binned))
+        self.logger.debug("Plotly figure created successfully")
         return fig
 
     def _get_chart_layout(self, stock_data: pd.DataFrame, volume_binned: pd.Series) -> dict:
@@ -216,36 +242,53 @@ class EmailBuilder:
 
     def format_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Formats numeric values in DataFrame with abbreviated suffixes (K, M, B, T)."""
+        self.logger.debug(f"Formatting DataFrame with {len(df)} rows and {len(df.columns)} columns")
         df_formatted = df.copy()
 
+        numeric_columns = 0
         for col in df_formatted.columns:
             if pd.api.types.is_numeric_dtype(df_formatted[col]):
                 df_formatted[col] = df_formatted[col].apply(self._format_numeric_value)
+                numeric_columns += 1
             else:
                 df_formatted[col] = df_formatted[col].apply(self._format_if_numeric)
 
+        self.logger.debug(f"Formatted {numeric_columns} numeric columns in DataFrame")
         return df_formatted
 
     def format_column_headers(self, df: pd.DataFrame) -> pd.DataFrame:
         """Format column headers from snake_case to Title Case."""
         df_formatted = df.copy()
-        df_formatted.columns = [
-            self._format_column_name(col) if self._needs_formatting(col) else col 
-            for col in df_formatted.columns
-        ]
+        headers_formatted = 0
+        
+        new_columns = []
+        for col in df_formatted.columns:
+            if self._needs_formatting(col):
+                formatted_col = self._format_column_name(col)
+                new_columns.append(formatted_col)
+                headers_formatted += 1
+            else:
+                new_columns.append(col)
+        
+        df_formatted.columns = new_columns
+        self.logger.debug(f"Formatted {headers_formatted} column headers")
         return df_formatted
 
     def format_raw_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """Organizes the DataFrame for email presentation."""
+        self.logger.debug("Formatting raw DataFrame for email presentation")
         filtered_df = df.drop(columns=["date", "form_type"])
         return self.rename_columns(filtered_df, self.raw_df_mappings)
 
     def format_metrics_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """Organizes the DataFrame for email presentation."""
+        self.logger.debug("Formatting metrics DataFrame for email presentation")
         return self.rename_columns(df, self.metrics_df_mappings)
 
     def rename_columns(self, df: pd.DataFrame, mapping: dict) -> pd.DataFrame:
         """Renames columns in the DataFrame according to a provided mapping."""
+        renamed_columns = [col for col in df.columns if col in mapping]
+        self.logger.debug(f"Renamed {len(renamed_columns)} columns using provided mapping")
         return df.rename(columns=mapping, inplace=False)
 
     def _needs_formatting(self, column_name):
@@ -324,6 +367,7 @@ class EmailBuilder:
 
     def _create_introduction_html(self, ticker: str) -> str:
         """Creates the HTML introduction section for the email."""
+        self.logger.debug(f"Creating introduction HTML for {ticker}")
         return f'''
         <div class="intro-section">
             <p>This comprehensive financial analysis for <strong>{ticker}</strong> includes recent market performance, current market sentiment, sector analysis, earnings analysis, latest news developments, and detailed financial metrics to provide you with a complete investment overview.</p>
@@ -336,11 +380,14 @@ class EmailBuilder:
         price_change_pct = stock_performance.get('price_change_pct')
         
         if current_price is None or price_change_pct is None:
+            self.logger.warning(f"Missing stock performance data for {ticker} header")
             return f"{ticker}"
         
         price_str = f"${current_price:.2f}"
         pct_change_str = f"{price_change_pct:+.2f}%"
         perf_class = self.get_performance_class(price_change_pct)
+        
+        self.logger.debug(f"Created stock header for {ticker}: {price_str} ({pct_change_str})")
         
         return f'''
         {ticker} 
@@ -355,12 +402,16 @@ class EmailBuilder:
     def _create_chart_html(self, content_id: str, ticker: str) -> str:
         """Creates the HTML for the stock chart display."""
         if content_id:
+            self.logger.debug(f"Creating chart HTML with content ID: {content_id}")
             return f'<img src="cid:{content_id}" alt="{ticker} Stock Chart - Last 12 Months" style="max-width:100%;height:auto;display:block;margin:0 auto;">'
         else:
+            self.logger.warning(f"No content ID provided for chart HTML for {ticker}")
             return ""
 
     def _format_sentiment_analysis(self, corporate_sentiment: float, retail_sentiment: float) -> str:
         """Creates formatted HTML for sentiment analysis display."""
+        self.logger.debug(f"Formatting sentiment analysis - Corporate: {corporate_sentiment}, Retail: {retail_sentiment}")
+        
         corp_value, corp_class = self._get_sentiment_details(corporate_sentiment)
         retail_value, retail_class = self._get_sentiment_details(retail_sentiment)
 
@@ -382,6 +433,7 @@ class EmailBuilder:
         try:
             s = float(score)
         except Exception:
+            self.logger.warning(f"Invalid sentiment score: {score}")
             return "N/A", "performance-neutral"
 
         if s > 0.05:
@@ -394,7 +446,10 @@ class EmailBuilder:
     def _format_sector_performance(self, ticker: str, sector_performance: dict) -> str:
         """Creates formatted HTML for sector performance display."""
         if not sector_performance or sector_performance.get("sector") == "Unknown":
+            self.logger.warning(f"No sector performance data available for {ticker}")
             return '<div class="info-container">Sector information not available</div>'
+        
+        self.logger.debug(f"Formatting sector performance for {ticker} in sector: {sector_performance.get('sector')}")
         
         sector_data = self._extract_sector_data(sector_performance)
         performance_classes = self._get_sector_performance_classes(sector_data)
@@ -432,6 +487,8 @@ class EmailBuilder:
         sector_performance_pct = sector_performance.get("sector_1y_performance_pct", 0.0)
         opportunity_cost_pct = ticker_performance_pct - sector_performance_pct
         
+        self.logger.debug(f"Sector data extracted - Ticker: {ticker_performance_pct:.2f}%, Sector: {sector_performance_pct:.2f}%, Opportunity cost: {opportunity_cost_pct:.2f}%")
+        
         return {
             'sector': sector,
             'sector_etf': sector_etf,
@@ -450,9 +507,12 @@ class EmailBuilder:
 
     def _format_earnings_analysis(self, earnings_df: pd.DataFrame, earnings_estimate: dict) -> str:
         """Creates formatted HTML for earnings analysis display."""
+        self.logger.debug(f"Formatting earnings analysis - DF shape: {earnings_df.shape if earnings_df is not None else 'None'}")
+        
         html_parts = []
         
         if earnings_df is None or earnings_df.empty:
+            self.logger.warning("No historical earnings data available")
             html_parts.append('<div class="info-container">No historical earnings data available</div>')
         else:
             historical_html = self._format_historical_earnings(earnings_df)
@@ -467,6 +527,7 @@ class EmailBuilder:
     def _format_historical_earnings(self, earnings_df: pd.DataFrame) -> list:
         """Format historical earnings data into HTML."""
         try:
+            self.logger.debug(f"Formatting {len(earnings_df)} historical earnings records")
             earnings_display = self._prepare_earnings_display_df(earnings_df)
             
             earnings_html_table = earnings_display.to_html(
@@ -489,7 +550,7 @@ class EmailBuilder:
             ]
             
         except Exception as e:
-            print(f"Error formatting historical earnings data: {str(e)}")
+            self.logger.error(f"Error formatting historical earnings data: {str(e)}")
             return ['<div class="info-container">Error processing historical earnings data</div>']
 
     def _prepare_earnings_display_df(self, earnings_df: pd.DataFrame) -> pd.DataFrame:
@@ -532,9 +593,11 @@ class EmailBuilder:
 
     def _format_earnings_estimate(self, earnings_estimate: dict) -> list:
         """Format earnings estimate data into HTML."""
+        self.logger.debug(f"Formatting earnings estimate: {earnings_estimate}")
         html_parts = ['<h4 style="color: #2c3e50; margin: 25px 0 10px 0; font-size: 16px;">Next Earnings Estimate</h4>']
         
         if not earnings_estimate or not (earnings_estimate.get('nextEarningsDate') or earnings_estimate.get('estimatedEPS')):
+            self.logger.warning("No upcoming earnings estimate data available")
             html_parts.append('<div class="info-container">No upcoming earnings estimate available</div>')
             return html_parts
         
@@ -647,14 +710,18 @@ class EmailBuilder:
     def _build_news_html(self, news_df: pd.DataFrame) -> str:
         """Build HTML for news section."""
         if news_df is None or news_df.empty:
+            self.logger.warning("No news data provided for HTML building")
             return ""
 
+        self.logger.debug(f"Building news HTML from {len(news_df)} news articles")
         df = self._prepare_news_df(news_df)
         news_items = self._create_news_items(df)
         
         if not news_items:
+            self.logger.warning("No valid news items found after processing")
             return ""
-            
+        
+        self.logger.debug(f"Built news HTML with {len(news_items)} news items")
         return f'<ul class="news-list">{"".join(news_items)}</ul>'
 
     def _prepare_news_df(self, news_df: pd.DataFrame) -> pd.DataFrame:
@@ -665,6 +732,7 @@ class EmailBuilder:
             with pd.option_context('mode.chained_assignment', None):
                 df["published_at"] = pd.to_datetime(df["published_at"], errors="coerce", utc=True)
             df = df.sort_values("published_at", ascending=False, na_position="last")
+            self.logger.debug("News DataFrame sorted by publication date")
 
         return df
 
@@ -672,24 +740,27 @@ class EmailBuilder:
         """Create individual news item HTML."""
         items = []
         
-        for _, row in df.head(self.news_limit).iterrows():
+        for idx, row in df.head(self.news_limit).iterrows():
             headline = str(row.get("headline", "") or "").strip()
             summary = str(row.get("summary", "") or "").strip()
             url = str(row.get("url", "") or "").strip()
 
             if not headline and not summary:
+                self.logger.debug(f"Skipping news item {idx}: no headline or summary")
                 continue
 
             news_item_html = self._format_single_news_item(headline, summary, url)
             if news_item_html:
                 items.append(news_item_html)
 
+        self.logger.debug(f"Created {len(items)} news items from {len(df)} articles")
         return items
 
     def _format_single_news_item(self, headline: str, summary: str, url: str) -> str:
         """Format a single news item into HTML."""
         if summary and len(summary) > self.news_summary_chars:
             summary = summary[: self.news_summary_chars - 1].rstrip() + "…"
+            self.logger.debug(f"Truncated news summary to {self.news_summary_chars} characters")
 
         headline_html = f'<div class="news-headline">{headline}</div>' if headline else ""
         summary_html = f'<p class="news-summary">{summary}</p>' if summary else ""
@@ -713,12 +784,16 @@ class EmailBuilder:
         Build HTML content and return chart attachment info.
         Returns: (html_content, (chart_bytes, content_id, filename)|None)
         """
+        self.logger.info(f"Building complete HTML content for {ticker}")
+        
         sections = self._gather_html_sections(
             ticker, raw_df, metrics_df, corporate_sentiment, retail_sentiment,
             news_df, sector_performance, earnings_df, earnings_estimate
         )
         
         html_content = self._build_complete_html(sections)
+        
+        self.logger.info(f"HTML content built successfully for {ticker} - has chart: {sections['chart_attachment_data'] is not None}")
         
         return html_content, sections['chart_attachment_data']
 
@@ -727,6 +802,8 @@ class EmailBuilder:
                              sector_performance: dict, earnings_df: pd.DataFrame, 
                              earnings_estimate: dict) -> dict:
         """Gather all HTML sections and data needed for the email."""
+        self.logger.debug(f"Gathering HTML sections for {ticker}")
+        
         intro_html = self._create_introduction_html(ticker)
 
         stock_data = self.fetch_stock_data(ticker)
@@ -744,7 +821,7 @@ class EmailBuilder:
 
         raw_html_table, metrics_html_table = self._prepare_financial_tables(raw_df, metrics_df)
 
-        return {
+        sections = {
             'intro_html': intro_html,
             'stock_header': stock_header,
             'chart_html': chart_html,
@@ -756,9 +833,14 @@ class EmailBuilder:
             'metrics_html_table': metrics_html_table,
             'chart_attachment_data': chart_attachment_data
         }
+        
+        self.logger.debug(f"Gathered all HTML sections for {ticker}")
+        return sections
 
     def _prepare_financial_tables(self, raw_df: pd.DataFrame, metrics_df: pd.DataFrame) -> tuple:
         """Prepare formatted financial tables."""
+        self.logger.debug(f"Preparing financial tables - Raw: {raw_df.shape}, Metrics: {metrics_df.shape}")
+        
         filtered_raw_df = self.format_raw_df(raw_df)
         filtered_metrics_df = self.format_metrics_df(metrics_df)
 
@@ -768,11 +850,14 @@ class EmailBuilder:
         raw_html_table = raw_df_formatted.to_html(index=False, border=0, justify="center")
         metrics_html_table = metrics_df_formatted.to_html(index=False, border=0, justify="center")
 
+        self.logger.debug("Financial tables prepared successfully")
         return raw_html_table, metrics_html_table
 
     def _build_complete_html(self, sections: dict) -> str:
         """Build the complete HTML email content."""
-        return f"""
+        self.logger.debug("Building complete HTML email content")
+        
+        html_content = f"""
         <html>
         <head>
         <meta charset="utf-8">
@@ -806,6 +891,9 @@ class EmailBuilder:
         </body>
         </html>
         """
+        
+        self.logger.debug(f"Complete HTML content built - length: {len(html_content)} characters")
+        return html_content
 
     def _get_css_styles(self) -> str:
         """Return the CSS styles for the email."""

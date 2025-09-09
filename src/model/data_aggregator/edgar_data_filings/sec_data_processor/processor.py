@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dataclasses import asdict, replace
 from typing import Optional, Any
 from src.model.utils.models import FinancialRecord, GrowthMetrics
+from src.model.utils.logger_config import LoggerSetup
 
 
 class SECDataProcessor:
@@ -13,7 +14,9 @@ class SECDataProcessor:
     """
     
     def __init__(self):
+        self.logger = LoggerSetup.setup_logger(__name__)
         self.stock_price_cache = {}
+        self.logger.info("SECDataProcessor initialized with stock price cache")
     
     def get_stock_price_for_date(self, ticker: str, date: str, window_days: int = 5) -> Optional[float]:
         """
@@ -21,9 +24,11 @@ class SECDataProcessor:
         """
         cache_key = f"{ticker}_{date}"
         if cache_key in self.stock_price_cache:
+            self.logger.debug(f"Using cached stock price for {ticker} on {date}: {self.stock_price_cache[cache_key]}")
             return self.stock_price_cache[cache_key]
         
         try:
+            self.logger.debug(f"Fetching stock price for {ticker} on {date} with {window_days} day window")
             target_date = datetime.strptime(date, "%Y-%m-%d")
             start_date = target_date - timedelta(days=window_days)
             end_date = target_date + timedelta(days=window_days)
@@ -32,27 +37,32 @@ class SECDataProcessor:
             history = stock.history(start=start_date, end=end_date)
             
             if history.empty:
+                self.logger.warning(f"No price history found for {ticker} around {date}")
                 return None
             
             if target_date.strftime('%Y-%m-%d') in history.index.strftime('%Y-%m-%d'):
                 price = history.loc[history.index.strftime('%Y-%m-%d') == target_date.strftime('%Y-%m-%d'), 'Close'].iloc[0]
+                self.logger.debug(f"Found exact price for {ticker} on {date}: {price}")
             else:
                 price = history['Close'].iloc[-1]
+                self.logger.debug(f"Using fallback price for {ticker} near {date}: {price}")
             
             self.stock_price_cache[cache_key] = float(price)
             return float(price)
             
         except Exception as e:
-            print(f"Error fetching stock price for {ticker} on {date}: {e}")
+            self.logger.error(f"Error fetching stock price for {ticker} on {date}: {e}")
             return None
     
     def create_financial_dataframe(self, financial_data: dict[str, list[FinancialRecord]]) -> pd.DataFrame:
         """
         Convert financial records dictionary to a pandas DataFrame with enhanced metrics.
         """
+        self.logger.info(f"Creating financial DataFrame for {len(financial_data)} tickers")
         df_records = []
         
         for ticker, records in financial_data.items():
+            self.logger.debug(f"Processing {len(records)} records for ticker {ticker}")
             enhanced_records = self._enhance_records_with_all_metrics(records)
             
             for record in enhanced_records:
@@ -60,15 +70,19 @@ class SECDataProcessor:
                 record_dict['ticker'] = ticker
                 df_records.append(record_dict)
         
-        return pd.DataFrame(df_records)
+        result_df = pd.DataFrame(df_records)
+        self.logger.info(f"Created DataFrame with {len(result_df)} total records")
+        return result_df
     
     def create_split_dataframes(self, financial_data: dict[str, list[FinancialRecord]]) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Create two separate DataFrames: one with raw financial data and one with calculated metrics.
         """
+        self.logger.info("Creating split DataFrames (raw and metrics)")
         full_df = self.create_financial_dataframe(financial_data)
         
         if full_df.empty:
+            self.logger.warning("Full DataFrame is empty, returning empty DataFrames")
             return pd.DataFrame(), pd.DataFrame()
         
         calculated_fields = {
@@ -89,6 +103,7 @@ class SECDataProcessor:
         raw_df = full_df[raw_columns].copy()
         metrics_df = full_df[metrics_columns].copy()
         
+        self.logger.info(f"Split complete - Raw DataFrame: {len(raw_df)} rows, Metrics DataFrame: {len(metrics_df)} rows")
         return raw_df, metrics_df
     
     def calculate_growth_metrics(self, tickers: list[str], 
@@ -96,11 +111,14 @@ class SECDataProcessor:
         """
         Calculate comprehensive growth metrics for specified tickers.
         """
+        self.logger.info(f"Calculating growth metrics for {len(tickers)} tickers")
         growth_data = {}
         
         for ticker in tickers:
+            self.logger.debug(f"Processing growth metrics for {ticker}")
             records = financial_data.get(ticker, [])
             if len(records) < 2:
+                self.logger.warning(f"Insufficient records ({len(records)}) for growth calculations for {ticker}")
                 growth_data[ticker] = []
                 continue
                 
@@ -120,14 +138,19 @@ class SECDataProcessor:
                 growth_metrics.append(growth_metric)
             
             growth_data[ticker] = growth_metrics
+            self.logger.debug(f"Calculated {len(growth_metrics)} growth periods for {ticker}")
         
+        self.logger.info("Growth metrics calculation completed")
         return growth_data
     
     def process_records_with_metrics(self, records: list[FinancialRecord]) -> list[FinancialRecord]:
         """
         Process financial records by calculating missing metrics and advanced scores.
         """
-        return self._enhance_records_with_all_metrics(records)
+        self.logger.info(f"Processing {len(records)} financial records with metrics")
+        enhanced_records = self._enhance_records_with_all_metrics(records)
+        self.logger.info(f"Enhanced {len(enhanced_records)} financial records")
+        return enhanced_records
     
     def generate_financial_summary(self, ticker: str, profile, 
                                  financial_records: list[FinancialRecord], 
@@ -135,12 +158,16 @@ class SECDataProcessor:
         """
         Generate a comprehensive financial summary for a company.
         """
+        self.logger.info(f"Generating financial summary for {ticker}")
+        
         if not financial_records:
+            self.logger.error(f"No financial data available for {ticker}")
             return {'error': f'No financial data available for {ticker}'}
         
         latest_record = max(financial_records, key=lambda x: x.date)
+        self.logger.debug(f"Using latest record from {latest_record.date} for {ticker}")
         
-        return {
+        summary = {
             'company_info': {
                 'ticker': ticker,
                 'name': getattr(profile, 'company_name', 'Unknown'),
@@ -152,14 +179,19 @@ class SECDataProcessor:
             'market_metrics': self._extract_market_metrics(latest_record),
             'growth_metrics': growth_data
         }
+        
+        self.logger.info(f"Financial summary generated for {ticker}")
+        return summary
     
     def _enhance_records_with_all_metrics(self, records: list[FinancialRecord]) -> list[FinancialRecord]:
         """
         Enhance records with both fundamental and market-based metrics.
         """
+        self.logger.debug(f"Enhancing {len(records)} records with all metrics")
         enhanced_records = []
         
-        for record in records:
+        for i, record in enumerate(records):
+            self.logger.debug(f"Enhancing record {i+1}/{len(records)} for {getattr(record, 'ticker', 'unknown')} on {record.date}")
             record_dict = asdict(record)
             
             self._calculate_all_financial_metrics(record_dict)
@@ -167,6 +199,11 @@ class SECDataProcessor:
             stock_price = self.get_stock_price_for_date(record.ticker, record.date)
             if stock_price and record.shares_outstanding:
                 self._add_market_metrics_to_dict(record_dict, record, stock_price)
+            else:
+                if not stock_price:
+                    self.logger.debug(f"No stock price found for {record.ticker} on {record.date}")
+                if not record.shares_outstanding:
+                    self.logger.debug(f"No shares outstanding data for {record.ticker} on {record.date}")
             
             enhanced_record = self._create_record_from_dict(record_dict)
             final_record = replace(
@@ -177,12 +214,14 @@ class SECDataProcessor:
             
             enhanced_records.append(final_record)
         
+        self.logger.debug(f"Enhanced {len(enhanced_records)} records")
         return enhanced_records
     
     def _calculate_all_financial_metrics(self, data: dict) -> None:
         """
         Calculate ALL financial metrics including margins, ratios, and derived values.
         """
+        self.logger.debug("Calculating all financial metrics")
         self._calculate_derived_values(data)
         self._calculate_margins(data)
         self._calculate_ratios(data)
@@ -194,19 +233,23 @@ class SECDataProcessor:
         # Gross profit
         if self._both_not_none(data, 'revenue', 'cost_of_revenue'):
             data['gross_profit'] = data['revenue'] - data['cost_of_revenue']
+            self.logger.debug(f"Calculated gross profit: {data['gross_profit']}")
         
         # Working capital
         if self._both_not_none(data, 'current_assets', 'current_liabilities'):
             data['working_capital'] = data['current_assets'] - data['current_liabilities']
+            self.logger.debug(f"Calculated working capital: {data['working_capital']}")
         
         # Free cash flow
         if self._both_not_none(data, 'operating_cash_flow', 'capital_expenditures'):
             data['free_cash_flow'] = data['operating_cash_flow'] - data['capital_expenditures']
+            self.logger.debug(f"Calculated free cash flow: {data['free_cash_flow']}")
     
     def _calculate_margins(self, data: dict) -> None:
         """Calculate profit margins as percentages"""
         revenue = data.get('revenue')
         if not revenue or revenue <= 0:
+            self.logger.debug("Cannot calculate margins: invalid revenue")
             return
         
         margin_fields = [
@@ -218,7 +261,9 @@ class SECDataProcessor:
         for profit_field, margin_field in margin_fields:
             profit = data.get(profit_field)
             if profit is not None:
-                data[margin_field] = (profit / revenue) * 100
+                margin = (profit / revenue) * 100
+                data[margin_field] = margin
+                self.logger.debug(f"Calculated {margin_field}: {margin:.2f}%")
     
     def _calculate_ratios(self, data: dict) -> None:
         """Calculate financial ratios for liquidity, leverage, and profitability"""
@@ -228,46 +273,57 @@ class SECDataProcessor:
             # Quick ratio
             quick_assets = data['current_assets'] - data.get('inventory', 0)
             data['quick_ratio'] = quick_assets / data['current_liabilities']
+            self.logger.debug(f"Calculated liquidity ratios - Current: {data['current_ratio']:.2f}, Quick: {data['quick_ratio']:.2f}")
         
         # Leverage ratios
         if self._safe_divide(data, 'total_liabilities', 'shareholders_equity'):
             data['debt_to_equity'] = data['total_liabilities'] / data['shareholders_equity']
+            self.logger.debug(f"Calculated debt-to-equity: {data['debt_to_equity']:.2f}")
         
         # Profitability ratios
         net_income = data.get('net_income')
         if net_income is not None:
             if self._safe_divide(data, 'net_income', 'total_assets'):
                 data['return_on_assets'] = (net_income / data['total_assets']) * 100
+                self.logger.debug(f"Calculated ROA: {data['return_on_assets']:.2f}%")
             if self._safe_divide(data, 'net_income', 'shareholders_equity'):
                 data['return_on_equity'] = (net_income / data['shareholders_equity']) * 100
+                self.logger.debug(f"Calculated ROE: {data['return_on_equity']:.2f}%")
     
     def _calculate_per_share_metrics_dict(self, data: dict) -> None:
         """Calculate per-share metrics"""
         # EPS
         if self._safe_divide(data, 'net_income', 'weighted_average_shares'):
             data['earnings_per_share'] = data['net_income'] / data['weighted_average_shares']
+            self.logger.debug(f"Calculated EPS: {data['earnings_per_share']:.2f}")
     
     def _calculate_advanced_metrics_dict(self, data: dict) -> None:
         """Calculate advanced financial health metrics"""
         # Asset Turnover
         if self._safe_divide(data, 'revenue', 'total_assets'):
             data['asset_turnover'] = data['revenue'] / data['total_assets']
+            self.logger.debug(f"Calculated asset turnover: {data['asset_turnover']:.2f}")
         
         # Inventory Turnover
         if self._safe_divide(data, 'cost_of_revenue', 'inventory'):
             data['inventory_turnover'] = data['cost_of_revenue'] / data['inventory']
+            self.logger.debug(f"Calculated inventory turnover: {data['inventory_turnover']:.2f}")
         
         # Receivables Turnover & DSO
         if self._safe_divide(data, 'revenue', 'accounts_receivable'):
             data['receivables_turnover'] = data['revenue'] / data['accounts_receivable']
             data['days_sales_outstanding'] = 365 / data['receivables_turnover']
+            self.logger.debug(f"Calculated receivables turnover: {data['receivables_turnover']:.2f}, DSO: {data['days_sales_outstanding']:.1f}")
         
         # Debt to EBITDA (using operating income as proxy)
         if self._safe_divide(data, 'total_liabilities', 'operating_income'):
             data['debt_to_ebitda'] = data['total_liabilities'] / data['operating_income']
+            self.logger.debug(f"Calculated debt-to-EBITDA: {data['debt_to_ebitda']:.2f}")
     
     def _add_market_metrics_to_dict(self, data: dict, original_record: FinancialRecord, stock_price: float) -> None:
         """Add market-based metrics to data dictionary"""
+        self.logger.debug(f"Adding market metrics with stock price: {stock_price}")
+        
         market_cap = stock_price * original_record.shares_outstanding if original_record.shares_outstanding else None
         enterprise_value = self._calculate_enterprise_value(market_cap, original_record.long_term_debt, original_record.cash_and_equivalents)
         book_value_per_share = (original_record.shareholders_equity / original_record.shares_outstanding 
@@ -291,6 +347,7 @@ class SECDataProcessor:
         }
         
         data.update(market_metrics)
+        self.logger.debug(f"Added market metrics - Market cap: {market_cap}, P/E: {market_metrics['price_to_earnings']}")
     
     def _calculate_enterprise_value(self, market_cap: Optional[float], 
                                   long_term_debt: Optional[float], 
@@ -302,21 +359,27 @@ class SECDataProcessor:
         debt = long_term_debt or 0
         cash_amount = cash or 0
         
-        return market_cap + debt - cash_amount
+        enterprise_value = market_cap + debt - cash_amount
+        self.logger.debug(f"Calculated enterprise value: {enterprise_value} (Market cap: {market_cap}, Debt: {debt}, Cash: {cash_amount})")
+        return enterprise_value
     
     def _calculate_ev_to_ebitda(self, enterprise_value: Optional[float], 
                                operating_income: Optional[float]) -> Optional[float]:
         """Calculate EV/EBITDA ratio (using operating income as EBITDA proxy)"""
         if not enterprise_value or not operating_income or operating_income <= 0:
             return None
-        return enterprise_value / operating_income
+        ratio = enterprise_value / operating_income
+        self.logger.debug(f"Calculated EV/EBITDA: {ratio:.2f}")
+        return ratio
     
     def _calculate_market_to_book_premium(self, market_cap: Optional[float], 
                                         shareholders_equity: Optional[float]) -> Optional[float]:
         """Calculate market-to-book premium as percentage"""
         if not market_cap or not shareholders_equity or shareholders_equity <= 0:
             return None
-        return ((market_cap - shareholders_equity) / shareholders_equity) * 100
+        premium = ((market_cap - shareholders_equity) / shareholders_equity) * 100
+        self.logger.debug(f"Calculated market-to-book premium: {premium:.2f}%")
+        return premium
     
     def _calculate_qoq_growth(self, growth_metric: GrowthMetrics, 
                             current: FinancialRecord, previous: FinancialRecord) -> None:
@@ -334,12 +397,14 @@ class SECDataProcessor:
             if current_val is not None and previous_val not in (None, 0):
                 growth_rate = ((current_val - previous_val) / previous_val) * 100
                 setattr(growth_metric, growth_field, growth_rate)
+                self.logger.debug(f"Calculated {growth_field}: {growth_rate:.2f}%")
     
     def _calculate_yoy_growth(self, growth_metric: GrowthMetrics, current: FinancialRecord,
                             sorted_records: list[FinancialRecord], current_index: int) -> None:
         """Calculate year-over-year growth rates (4 quarters back)"""
         yoy_record = self._find_yoy_record(sorted_records, current_index)
         if not yoy_record:
+            self.logger.debug("No YoY record found for growth calculations")
             return
         
         yoy_calculations = [
@@ -355,11 +420,13 @@ class SECDataProcessor:
             if current_val is not None and yoy_val not in (None, 0):
                 growth_rate = ((current_val - yoy_val) / yoy_val) * 100
                 setattr(growth_metric, growth_field, growth_rate)
+                self.logger.debug(f"Calculated {growth_field}: {growth_rate:.2f}%")
     
     def _calculate_revenue_acceleration(self, growth_metric: GrowthMetrics,
                                       sorted_records: list[FinancialRecord], current_index: int) -> None:
         """Calculate revenue growth acceleration (change in growth rate)"""
         if current_index < 2:
+            self.logger.debug("Insufficient records for revenue acceleration calculation")
             return
         
         current = sorted_records[current_index]
@@ -370,7 +437,9 @@ class SECDataProcessor:
         prev_growth = self._calculate_period_growth(previous.revenue, prev_period.revenue)
         
         if current_growth is not None and prev_growth is not None:
-            growth_metric.revenue_growth_acceleration = current_growth - prev_growth
+            acceleration = current_growth - prev_growth
+            growth_metric.revenue_growth_acceleration = acceleration
+            self.logger.debug(f"Calculated revenue growth acceleration: {acceleration:.2f}%")
     
     def _determine_trends(self, growth_metric: GrowthMetrics, 
                          sorted_records: list[FinancialRecord], current_index: int) -> None:
@@ -383,6 +452,8 @@ class SECDataProcessor:
         
         growth_metric.revenue_trend = self._determine_trend_direction(revenue_values)
         growth_metric.profitability_trend = self._determine_trend_direction(profitability_values)
+        
+        self.logger.debug(f"Determined trends - Revenue: {growth_metric.revenue_trend}, Profitability: {growth_metric.profitability_trend}")
     
     def _calculate_altman_z_score(self, record: FinancialRecord) -> Optional[float]:
         """Calculate Altman Z-Score for bankruptcy prediction"""
@@ -397,8 +468,11 @@ class SECDataProcessor:
         equity_to_liabilities = self._safe_ratio(record.shareholders_equity, record.total_liabilities)
         sales_to_assets = self._safe_ratio(record.revenue, total_assets)
         
-        return (1.2 * wc_to_assets + 1.4 * re_to_assets + 3.3 * ebit_to_assets + 
-                0.6 * equity_to_liabilities + 1.0 * sales_to_assets)
+        z_score = (1.2 * wc_to_assets + 1.4 * re_to_assets + 3.3 * ebit_to_assets + 
+                   0.6 * equity_to_liabilities + 1.0 * sales_to_assets)
+        
+        self.logger.debug(f"Calculated Altman Z-Score: {z_score:.2f}")
+        return z_score
     
     def _calculate_piotroski_f_score(self, record: FinancialRecord) -> Optional[int]:
         """Calculate Piotroski F-Score (0-8 scale) for fundamental analysis"""
@@ -424,6 +498,7 @@ class SECDataProcessor:
         if self._is_above_threshold(record.gross_margin, 20):
             score += 1
         
+        self.logger.debug(f"Calculated Piotroski F-Score: {score}")
         return score
     
     def _create_record_from_dict(self, data: dict) -> FinancialRecord:

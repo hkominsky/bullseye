@@ -4,6 +4,7 @@ import requests
 
 from src.model.utils.http_client import HttpClient
 from src.model.utils.models import FinancialRecord
+from src.model.utils.logger_config import LoggerSetup
 
 
 class SECDataExtractor:
@@ -87,28 +88,36 @@ class SECDataExtractor:
         """
         Initialize the extractor with HTTP client and ticker-to-CIK mapping.
         """
+        self.logger = LoggerSetup.setup_logger(__name__)
         self.http_client = http_client
         self.ticker_mapping = ticker_mapping
+        self.logger.info(f"SECDataExtractor initialized with {len(ticker_mapping)} ticker mappings")
 
     def extract_raw_financial_data(self, ticker: str, limit: int = 8) -> List[FinancialRecord]:
         """
         Extract raw SEC financial data for a given ticker.
         """
-        cik = self._get_cik(ticker)
-        url = self.SEC_COMPANY_FACTS_URL.format(cik)
-
+        self.logger.info(f"Extracting financial data for {ticker} with limit {limit}")
+        
         try:
+            cik = self._get_cik(ticker)
+            url = self.SEC_COMPANY_FACTS_URL.format(cik)
+            self.logger.debug(f"Fetching data from SEC API for {ticker} (CIK: {cik})")
+
             response = self.http_client.get(url)
             response.raise_for_status()
             facts = response.json()
-            return self._parse_facts_to_records(ticker, facts, limit)
+            
+            records = self._parse_facts_to_records(ticker, facts, limit)
+            self.logger.info(f"Successfully extracted {len(records)} financial records for {ticker}")
+            return records
 
         except requests.RequestException as e:
-            print(f"HTTP error retrieving financial data for {ticker}: {e}")
+            self.logger.error(f"HTTP error retrieving financial data for {ticker}: {e}")
         except (KeyError, ValueError) as e:
-            print(f"Data parsing error for {ticker}: {e}")
+            self.logger.error(f"Data parsing error for {ticker}: {e}")
         except Exception as e:
-            print(f"Unexpected error retrieving financial data for {ticker}: {e}")
+            self.logger.error(f"Unexpected error retrieving financial data for {ticker}: {e}")
 
         return []
 
@@ -117,17 +126,24 @@ class SECDataExtractor:
         Get the CIK for a given ticker.
         """
         if ticker not in self.ticker_mapping:
+            available_tickers = list(self.ticker_mapping.keys())[:10]
+            self.logger.error(f"Unknown ticker: {ticker}. Available tickers sample: {available_tickers}")
             raise ValueError(
-                f"Unknown ticker: {ticker}. Available tickers: {list(self.ticker_mapping.keys())[:10]}..."
+                f"Unknown ticker: {ticker}. Available tickers: {available_tickers}..."
             )
-        return self.ticker_mapping[ticker]
+        
+        cik = self.ticker_mapping[ticker]
+        self.logger.debug(f"Found CIK {cik} for ticker {ticker}")
+        return cik
 
     def _parse_facts_to_records(self, ticker: str, facts: Dict[str, Any], limit: int) -> List[FinancialRecord]:
         """
         Convert SEC facts JSON into a list of FinancialRecord objects.
         """
+        self.logger.debug(f"Parsing SEC facts to records for {ticker}")
+        
         if "facts" not in facts or "us-gaap" not in facts["facts"]:
-            print(f"No US-GAAP data found for {ticker}")
+            self.logger.warning(f"No US-GAAP data found for {ticker}")
             return []
 
         us_gaap_facts = facts["facts"]["us-gaap"]
@@ -136,17 +152,21 @@ class SECDataExtractor:
         for field_name, metric_names in self.FINANCIAL_METRICS.items():
             self._collect_metric_data(ticker, us_gaap_facts, field_name, metric_names, period_data)
 
+        self.logger.debug(f"Collected data for {len(period_data)} periods for {ticker}")
+
         records: List[FinancialRecord] = []
-        for data in period_data.values():
+        for period_key, data in period_data.items():
             if self._has_sufficient_data(data):
                 try:
                     record = self._build_financial_record(data)
                     records.append(record)
                 except Exception as e:
-                    print(f"Error creating FinancialRecord for {ticker}: {e}")
+                    self.logger.error(f"Error creating FinancialRecord for {ticker} period {period_key}: {e}")
 
         records.sort(key=lambda x: x.date, reverse=True)
-        return records[:limit]
+        final_records = records[:limit]
+        self.logger.debug(f"Built {len(final_records)} financial records for {ticker}")
+        return final_records
 
     def _collect_metric_data(
         self,
@@ -168,6 +188,9 @@ class SECDataExtractor:
 
             if unit_key not in units:
                 continue
+
+            entries_count = len(units[unit_key])
+            self.logger.debug(f"Processing {entries_count} entries for {field_name} ({metric_name}) for {ticker}")
 
             for entry in units[unit_key]:
                 if not self._validate_entry(entry):
@@ -196,17 +219,26 @@ class SECDataExtractor:
                 'form_type': form_type,
                 'period': self._determine_period(end_date, form_type, frame)
             }
+            self.logger.debug(f"Created new period {period_key} for {ticker}")
 
         if (field_name not in period_data[period_key] or
                 self._should_update_metric(period_data[period_key], entry)):
             period_data[period_key][field_name] = value
+            self.logger.debug(f"Updated {field_name} for {ticker} period {period_key}: {value}")
 
     def _build_financial_record(self, data: Dict[str, Any]) -> FinancialRecord:
         """
         Build a FinancialRecord from raw period data.
         """
+        ticker = data.get('ticker', 'Unknown')
+        period = data.get('period', 'Unknown')
+        self.logger.debug(f"Building FinancialRecord for {ticker} period {period}")
+        
         valid_fields = {k: v for k, v in data.items() if k in FinancialRecord.__dataclass_fields__}
-        return FinancialRecord(**valid_fields)
+        record = FinancialRecord(**valid_fields)
+        
+        self.logger.debug(f"Built FinancialRecord for {ticker} with {len(valid_fields)} fields")
+        return record
 
     def _determine_unit_key(self, field_name: str, units: Dict) -> str:
         """
@@ -216,16 +248,22 @@ class SECDataExtractor:
 
         if field_name in share_fields:
             if "shares" in units:
+                self.logger.debug(f"Using 'shares' unit for {field_name}")
                 return "shares"
             elif "pure" in units:
+                self.logger.debug(f"Using 'pure' unit for {field_name}")
                 return "pure"
 
         if "USD" in units:
+            self.logger.debug(f"Using 'USD' unit for {field_name}")
             return "USD"
         elif "pure" in units and field_name in ['current_ratio', 'debt_to_equity', 'asset_turnover']:
+            self.logger.debug(f"Using 'pure' unit for ratio field {field_name}")
             return "pure"
 
-        return next(iter(units), "USD")
+        default_unit = next(iter(units), "USD")
+        self.logger.debug(f"Using default unit '{default_unit}' for {field_name}")
+        return default_unit
 
     def _validate_entry(self, entry: Dict[str, Any]) -> bool:
         """
@@ -236,11 +274,13 @@ class SECDataExtractor:
 
         val = entry['val']
         if not isinstance(val, (int, float)) or abs(val) > 1e15:
+            self.logger.debug(f"Invalid value rejected: {val}")
             return False
 
         try:
             datetime.fromisoformat(entry['end'])
         except (ValueError, TypeError):
+            self.logger.debug(f"Invalid date rejected: {entry.get('end')}")
             return False
 
         return True
@@ -253,8 +293,10 @@ class SECDataExtractor:
         existing_form = existing_data.get('form_type', '')
 
         if '10-K' in new_form and '10-Q' in existing_form:
+            self.logger.debug(f"Updating metric: 10-K supersedes 10-Q")
             return True
         if '10-Q' in new_form and '10-K' in existing_form:
+            self.logger.debug(f"Keeping existing metric: 10-K takes precedence over 10-Q")
             return False
 
         return False
@@ -263,7 +305,14 @@ class SECDataExtractor:
         """
         Check if a record has enough data to be useful.
         """
-        return data.get('revenue') is not None or data.get('total_assets') is not None
+        has_revenue = data.get('revenue') is not None
+        has_assets = data.get('total_assets') is not None
+        
+        sufficient = has_revenue or has_assets
+        if not sufficient:
+            self.logger.debug(f"Insufficient data for record - no revenue or total assets")
+        
+        return sufficient
 
     def _determine_period(self, end_date: str, form_type: str, frame: str = "") -> str:
         """
@@ -275,12 +324,17 @@ class SECDataExtractor:
             
             frame_period = self._extract_period_from_frame(frame)
             if frame_period:
-                return f"{year} {frame_period}"
+                period = f"{year} {frame_period}"
+                self.logger.debug(f"Determined period from frame: {period}")
+                return period
             
-            period = self._determine_period_from_form_and_date(form_type, date_obj.month)
-            return f"{year} {period}" if period != "Unknown" else "Unknown"
+            period_type = self._determine_period_from_form_and_date(form_type, date_obj.month)
+            period = f"{year} {period_type}" if period_type != "Unknown" else "Unknown"
+            self.logger.debug(f"Determined period from form/date: {period}")
+            return period
             
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f"Error determining period for {end_date}: {e}")
             return "Unknown"
 
     def _extract_period_from_frame(self, frame: str) -> str:
@@ -294,9 +348,11 @@ class SECDataExtractor:
         
         for quarter in ['Q1', 'Q2', 'Q3', 'Q4']:
             if quarter in frame_upper:
+                self.logger.debug(f"Extracted quarter {quarter} from frame: {frame}")
                 return quarter
         
         if 'CY' in frame_upper and 'Q' not in frame_upper:
+            self.logger.debug(f"Extracted FY from frame: {frame}")
             return "FY"
         
         return ""
@@ -320,7 +376,9 @@ class SECDataExtractor:
             1: "Q4", 2: "Q4", 3: "Q1", 4: "Q1", 5: "Q1", 6: "Q2",
             7: "Q2", 8: "Q2", 9: "Q3", 10: "Q3", 11: "Q3", 12: "Q4"
         }
-        return month_to_quarter.get(month, "Unknown")
+        quarter = month_to_quarter.get(month, "Unknown")
+        self.logger.debug(f"Mapped 10-Q month {month} to quarter {quarter}")
+        return quarter
 
     def _get_quarter_from_month(self, month: int) -> str:
         """
@@ -332,5 +390,5 @@ class SECDataExtractor:
             return "Q2"
         elif month in [7, 8, 9]:
             return "Q3"
-        else:  # month in [10, 11, 12]
+        else: 
             return "Q4"
