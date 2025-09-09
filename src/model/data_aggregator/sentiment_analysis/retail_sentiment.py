@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class RetailSentimentAnalyzer:
     """
     Class allows for the computation of retail sentiment from Twitter API data relating to the ticker.

@@ -4,6 +4,7 @@ import yfinance as yf
 
 load_dotenv()
 
+
 class EarningsFetcher:
     """
     Class for retrieving historical and projected earnings call data for a ticker.

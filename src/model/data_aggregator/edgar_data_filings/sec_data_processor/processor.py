@@ -2,8 +2,9 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
 from dataclasses import asdict, replace
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any
 from src.model.utils.models import FinancialRecord, GrowthMetrics
+
 
 class SECDataProcessor:
     """

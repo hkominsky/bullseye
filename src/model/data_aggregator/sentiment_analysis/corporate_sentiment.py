@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class CorporateSentimentAnalyzer:
     """
     A class to analyze sentiment from financial news articles for publicly traded companies.

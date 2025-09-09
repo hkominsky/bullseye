@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, List
-from datetime import datetime
+from typing import Optional
+
 
 @dataclass
 class Filing:

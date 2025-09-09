@@ -4,6 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 
+
 class CacheInterface(ABC):
     """
     Abstract base class defining the interface for cache implementations 

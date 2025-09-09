@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
+
 class TickerNews:
     """
     Class for retrieving news articles for a specified ticker using Finnhub API.
