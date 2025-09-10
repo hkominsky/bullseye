@@ -7,7 +7,7 @@ from src.model.utils.logger_config import LoggerSetup
 from src.model.utils.progress_tracker import ProgressTracker
 
 
-def main():
+def manual_email():
     """
     Main function to process SEC financial data for specified tickers.
     """
@@ -49,4 +49,4 @@ if __name__ == "__main__":
     """
     Entry point for the SEC data processing script. Sends per-ticker emails with attached data.
     """
-    all_results = main()
+    all_results = manual_email()
