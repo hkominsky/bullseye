@@ -1,7 +1,7 @@
 import sys
 from dotenv import load_dotenv
 
-from src.model.data_aggregator.manager import SECDataManager
+from src.model.data_aggregator.manager import DataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.utils.logger_config import LoggerSetup
 from src.model.utils.progress_tracker import ProgressTracker
@@ -26,7 +26,7 @@ def manual_email():
         logger.error(f"Environment validation failed: {e}")
         sys.exit(1)
 
-    manager = SECDataManager(env["USER_AGENT"])
+    manager = DataManager(env["USER_AGENT"])
     results = {}
 
     for ticker in TICKERS:

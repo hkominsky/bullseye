@@ -10,7 +10,7 @@ import time
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
-from src.model.data_aggregator.manager import SECDataManager
+from src.model.data_aggregator.manager import DataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.utils.logger_config import LoggerSetup
 from src.model.utils.progress_tracker import ProgressTracker
@@ -29,7 +29,7 @@ class EarningsWebhookController:
         self.tickers = set(tickers_list)
         self.finnhub_api_key = finnhub_api_key
         self.webhook_url = webhook_url
-        self.sec_manager = SECDataManager(user_email)
+        self.sec_manager = DataManager(user_email)
         self.start_time = datetime.now()
         
         self.app = Flask(__name__)
