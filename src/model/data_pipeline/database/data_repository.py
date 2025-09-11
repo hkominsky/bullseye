@@ -5,8 +5,8 @@ import json
 import pandas as pd
 from psycopg2.extras import execute_values
 
-from src.model.database.db_manager import DatabaseManager
-from src.model.database.data_validator import DataValidator
+from src.model.data_pipeline.database.db_manager import DatabaseManager
+from src.model.data_pipeline.database.data_validator import DataValidator
 from src.model.utils.logger_config import LoggerSetup
 
 

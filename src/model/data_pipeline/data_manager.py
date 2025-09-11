@@ -3,22 +3,22 @@ import pandas as pd
 from datetime import datetime
 
 from src.model.utils.http_client import HttpClient
-from src.model.data_aggregator.edgar_data_filings.ticker_retriever.cache import FileCache
-from src.model.data_aggregator.edgar_data_filings.ticker_retriever.ticker_service import TickerMappingService
-from src.model.data_aggregator.edgar_data_filings.sec_data_processor.extractor import SECDataExtractor
-from src.model.data_aggregator.edgar_data_filings.sec_data_processor.cleaner import SECDataCleaner
-from src.model.data_aggregator.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
-from src.model.data_aggregator.sentiment_analysis.corporate_sentiment import CorporateSentimentAnalyzer
-from src.model.data_aggregator.sentiment_analysis.retail_sentiment import RetailSentimentAnalyzer
-from src.model.data_aggregator.ticker_news.news import TickerNews
-from src.model.data_aggregator.sector_analysis.sector_performance import SectorPerformance
-from src.model.data_aggregator.earnings_tracker.stock_earnings import EarningsFetcher
+from src.model.data_pipeline.data_aggregator.edgar_data_filings.ticker_retriever.cache import FileCache
+from src.model.data_pipeline.data_aggregator.edgar_data_filings.ticker_retriever.ticker_service import TickerMappingService
+from src.model.data_pipeline.data_aggregator.edgar_data_filings.sec_data_processor.extractor import SECDataExtractor
+from src.model.data_pipeline.data_aggregator.edgar_data_filings.sec_data_processor.cleaner import SECDataCleaner
+from src.model.data_pipeline.data_aggregator.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
+from src.model.data_pipeline.data_aggregator.sentiment_analysis.corporate_sentiment import CorporateSentimentAnalyzer
+from src.model.data_pipeline.data_aggregator.sentiment_analysis.retail_sentiment import RetailSentimentAnalyzer
+from src.model.data_pipeline.data_aggregator.ticker_news.news import TickerNews
+from src.model.data_pipeline.data_aggregator.sector_analysis.sector_performance import SectorPerformance
+from src.model.data_pipeline.data_aggregator.earnings_tracker.stock_earnings import EarningsFetcher
 from src.model.notifier.notifications import EmailNotifier
 from src.model.utils.logger_config import LoggerSetup
 from src.model.utils.progress_tracker import ProgressTracker
-from src.model.database.data_validator import DataValidator
-from src.model.database.data_repository import DataRepository
-from src.model.database.db_manager import DatabaseManager
+from src.model.data_pipeline.database.data_validator import DataValidator
+from src.model.data_pipeline.database.data_repository import DataRepository
+from src.model.data_pipeline.database.db_manager import DatabaseManager
 from decouple import config
 
 

@@ -10,7 +10,7 @@ import time
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
 
-from src.model.data_aggregator.manager import DataManager
+from model.data_pipeline.data_manager import DataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.utils.logger_config import LoggerSetup
 from src.model.utils.progress_tracker import ProgressTracker
