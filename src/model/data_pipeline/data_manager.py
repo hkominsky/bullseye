@@ -3,11 +3,11 @@ import pandas as pd
 from datetime import datetime
 
 from src.model.utils.http_client import HttpClient
-from src.model.data_pipeline.data_aggregator.edgar_data_filings.ticker_retriever.cache import FileCache
-from src.model.data_pipeline.data_aggregator.edgar_data_filings.ticker_retriever.ticker_service import TickerMappingService
-from src.model.data_pipeline.data_aggregator.edgar_data_filings.sec_data_processor.extractor import SECDataExtractor
-from src.model.data_pipeline.data_aggregator.edgar_data_filings.sec_data_processor.cleaner import SECDataCleaner
-from src.model.data_pipeline.data_aggregator.edgar_data_filings.sec_data_processor.processor import SECDataProcessor
+from src.model.data_pipeline.data_aggregator.sec_data_filings.ticker_retriever.cache import FileCache
+from src.model.data_pipeline.data_aggregator.sec_data_filings.ticker_retriever.ticker_service import TickerMappingService
+from src.model.data_pipeline.data_aggregator.sec_data_filings.filings_pipeline.extractor import SECDataExtractor
+from src.model.data_pipeline.data_aggregator.sec_data_filings.filings_pipeline.cleaner import SECDataCleaner
+from src.model.data_pipeline.data_aggregator.sec_data_filings.filings_pipeline.processor import SECDataProcessor
 from src.model.data_pipeline.data_aggregator.sentiment_analysis.corporate_sentiment import CorporateSentimentAnalyzer
 from src.model.data_pipeline.data_aggregator.sentiment_analysis.retail_sentiment import RetailSentimentAnalyzer
 from src.model.data_pipeline.data_aggregator.ticker_news.news import TickerNews

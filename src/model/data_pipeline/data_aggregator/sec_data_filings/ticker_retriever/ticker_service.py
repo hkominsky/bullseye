@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import os
 from src.model.utils.http_client import HttpClient
-from src.model.data_pipeline.data_aggregator.edgar_data_filings.ticker_retriever.cache import CacheInterface
+from src.model.data_pipeline.data_aggregator.sec_data_filings.ticker_retriever.cache import CacheInterface
 from src.model.utils.logger_config import LoggerSetup
 
 
