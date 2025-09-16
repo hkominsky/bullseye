@@ -24,20 +24,22 @@ function Signup() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-left">
+    <div className="auth-container">
+      <div className="auth-left">
+        <div className="auth-left-background"></div>
       </div>
-      <div className="login-right">
-        <div className="login-card">
-          <h1 className="login-title">Sign up for Market Brief</h1>
+      <div className="auth-right">
+        <div className="auth-card">
+          <h1 className="auth-title">💼 Market Brief</h1>
+          <h2 className="auth-description">Sign up to continue</h2>
           
-          <button className="external-login-button" onClick={handleGoogleSignup}>
-            <GoogleIcon className="external-login-icon" />
+          <button className="external-auth-button" onClick={handleGoogleSignup}>
+            <GoogleIcon className="external-auth-icon" />
             Continue with Google
           </button>
           
-          <button className="external-login-button" onClick={handleGitHubSignup}>
-            <GitHubIcon className="external-login-icon" />
+          <button className="external-auth-button" onClick={handleGitHubSignup}>
+            <GitHubIcon className="external-auth-icon" />
             Continue with GitHub
           </button>
           
@@ -47,13 +49,14 @@ function Signup() {
             <span className="divider-line"></span>
           </div>
           
-          <div className="login-form">
+          <form className="auth-form" onSubmit={handleSignup}>
             <div className="form-group">
               <input
                 type="text"
                 id="firstName"
                 className="form-input"
                 placeholder="First Name"
+                required
               />
             </div>
             <div className="form-group">
@@ -62,6 +65,7 @@ function Signup() {
                 id="lastName"
                 className="form-input"
                 placeholder="Last Name"
+                required
               />
             </div>
             <div className="form-group">
@@ -70,6 +74,7 @@ function Signup() {
                 id="email"
                 className="form-input"
                 placeholder="Email"
+                required
               />
             </div>
             <div className="form-group">
@@ -78,6 +83,7 @@ function Signup() {
                 id="password"
                 className="form-input"
                 placeholder="Password"
+                required
               />
             </div>
             <div className="form-group">
@@ -86,14 +92,18 @@ function Signup() {
                 id="confirmPassword"
                 className="form-input"
                 placeholder="Confirm Password"
+                required
               />
             </div>
             
-            <button onClick={handleSignup} className="login-button">
+            <button type="submit" className="auth-button">
               SIGN UP
             </button>
-          </div>
-          <p className="registration-text">Already have an account? <span className="registration-span" onClick={handleLogin}>Log in</span></p>
+          </form>
+          
+          <p className="auth-footer-text">
+            Already have an account? <span className="auth-footer-link" onClick={handleLogin}>Log in</span>
+          </p>
         </div>
       </div>
     </div>

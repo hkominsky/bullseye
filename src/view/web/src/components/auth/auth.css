@@ -27,8 +27,13 @@
   
   --font-size-base: 16px;
   --font-size-sm: 14px;
+  --font-size-md: 20px;
   --font-size-lg: 32px;
-  --font-weight-medium: 500;
+  --font-size-xl: 36px;
+  --font-size-2xl: 42px;
+  --font-weight-md: 500;
+  --font-weight-lg: 600;
+  --font-weight-xl: 700;
   
   --icon-size: 20px;
   --divider-height: 1px;
@@ -44,22 +49,31 @@
   --bg-image: url('C:/Users/hughk/OneDrive/Desktop/Stuff/Code/market-brief/src/view/web/src/assets/bg-image.png');
 }
 
-.login-container {
+.auth-container {
   display: flex;
   min-height: 100vh;
   width: 100%;
 }
 
-.login-left {
+.auth-left {
   flex: var(--flex-ratio);
+  padding: var(--spacing-md);
+  background-color: var(--background-light);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.auth-left-background {
+  width: 100%;
+  height: 100%;
   background-image: var(--bg-image);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  min-height: 100vh;
+  border-radius: var(--radius-md);
 }
 
-.login-right {
+.auth-right {
   flex: var(--flex-ratio);
   display: flex;
   align-items: center;
@@ -68,21 +82,30 @@
   background-color: var(--background-light);
 }
 
-.login-card {
+.auth-card {
   padding: var(--spacing-xl);
   width: 100%;
   max-width: var(--card-max-width);
 }
 
-.login-title {
+.auth-title {
   color: var(--text-primary);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-medium);
-  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-xl);
+  margin-bottom: var(--spacing-xs);
   text-align: center;
 }
 
-.external-login-button {
+.auth-description {
+  color: var(--text-secondary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-md);
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+  line-height: 1;
+}
+
+.external-auth-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,24 +117,24 @@
   background-color: var(--background-light);
   color: var(--text-primary);
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-md);
   cursor: pointer;
   margin-bottom: var(--spacing-lg);
   transition: var(--transition-default);
   box-shadow: var(--shadow-google-default);
 }
 
-.external-login-button:hover {
+.external-auth-button:hover {
   background-color: var(--background-hover);
   box-shadow: var(--shadow-google-hover);
 }
 
-.external-login-button:active {
+.external-auth-button:active {
   background-color: var(--background-active);
   box-shadow: var(--shadow-google-active);
 }
 
-.external-login-icon {
+.external-auth-icon {
   width: var(--icon-size);
   height: var(--icon-size);
   flex-shrink: 0;
@@ -133,11 +156,11 @@
 .divider-text {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-md);
   padding: 0 var(--spacing-sm);
 }
 
-.login-form {
+.auth-form {
   display: flex;
   flex-direction: column;
 }
@@ -195,27 +218,27 @@
   outline: none;
 }
 
-.login-button {
+.auth-button {
   background-color: var(--primary-color);
   color: var(--text-light);
   padding: var(--spacing-md);
   border: none;
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-lg);
   cursor: pointer;
   margin-top: var(--spacing-sm);
 }
 
-.login-button:hover {
+.auth-button:hover {
   background-color: var(--primary-hover);
 }
 
-.login-button:active {
+.auth-button:active {
   background-color: var(--primary-active);
 }
 
-.registration-text {
+.auth-footer-text {
   text-align: center;
   margin-top: var(--spacing-lg);
   color: var(--text-primary);
@@ -223,28 +246,42 @@
   margin-top: var(--spacing-xl);
 }
 
-.registration-span {
+.auth-footer-link {
   color: var(--primary-color);
   cursor: pointer;
 }
 
-.registration-span:hover {
+.auth-footer-link:hover {
   text-decoration: underline;
 }
 
-
 @media (max-width: 768px) {
-  .login-container {
+  .auth-container {
     flex-direction: column;
   }
   
-  .login-left {
+  .auth-left {
     min-height: var(--mobile-vh-left);
+    box-sizing: border-box;
   }
   
-  .login-right {
+  .auth-left-background {
+    width: 100%;
+    height: 100%;
+    min-height: calc(var(--mobile-vh-left) - (var(--spacing-md) * 2));
+  }
+  
+  .auth-right {
     flex: none;
     min-height: var(--mobile-vh-right);
     padding: var(--spacing-md);
+  }
+
+  .auth-title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .auth-description {
+    font-size: var(--font-size-sm);
   }
 }
