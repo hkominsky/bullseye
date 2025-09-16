@@ -11,16 +11,12 @@ class DataValidator:
         self.logger = LoggerSetup.setup_logger(__name__)
     
     @staticmethod
-    def safe_decimal(value: Any, max_digits: int = 15, decimal_places: int = 6) -> Optional[float]:
-        """Safely convert value to decimal within PostgreSQL limits."""
+    def safe_decimal(value: Any) -> Optional[float]:
+        """Safely convert value to decimal."""
         if pd.isna(value) or value is None:
             return None
         try:
-            float_val = float(value)
-            max_val = 10**(max_digits - decimal_places) - 1
-            if abs(float_val) > max_val:
-                return max_val if float_val > 0 else -max_val
-            return float_val
+            return float(value)
         except (ValueError, TypeError, OverflowError):
             return None
     
@@ -38,12 +34,11 @@ class DataValidator:
     
     @staticmethod
     def safe_bigint(value: Any) -> Optional[int]:
-        """Safely convert value to bigint within PostgreSQL limits."""
+        """Safely convert value to bigint without clamping."""
         if pd.isna(value) or value is None:
             return None
         try:
-            int_val = int(float(value))
-            return max(-9223372036854775808, min(9223372036854775807, int_val))
+            return int(float(value))
         except (ValueError, TypeError, OverflowError):
             return None
     

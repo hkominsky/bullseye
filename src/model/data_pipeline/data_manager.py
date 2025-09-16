@@ -326,7 +326,7 @@ class DataManager:
         self._log_success(ticker, processing_time, data_hash)
         
         progress_tracker.step(progress_steps[8])
-        self.logger.info(f"Successfully processed {ticker} with consolidated database operations")
+        self.logger.info(f"Successfully processed {ticker}")
 
     def _log_failed_processing(self, ticker: str, start_time: datetime, status: str, error_message: str):
         """Log failed processing attempts using repository."""
