@@ -220,6 +220,7 @@
   margin-top: var(--spacing-lg);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xl);
 }
 
 .registration-span {

@@ -1,8 +1,11 @@
-import './login.css';
+import './auth.css';
+import { useNavigate } from 'react-router-dom';
 import { ReactComponent as GoogleIcon } from '../../assets/google-icon.svg';
 import { ReactComponent as GitHubIcon } from '../../assets/github-icon.svg';
 
 function Login() {
+  const navigate = useNavigate();
+
   const handleGoogleLogin = () => {
     console.log('Google login clicked');
   };
@@ -21,7 +24,7 @@ function Login() {
   };
 
   const handleSignUp = () => {
-    console.log('Sign up clicked');
+    navigate('/signup');
   };
   
   
