@@ -45,8 +45,18 @@
   --focus-outline-width: 2px;
   --flex-ratio: 1;
   --transition-default: all 0.2s ease;
+  
+  /* Added root variables for values that were hardcoded */
+  --error-bg-color: #fee;
+  --error-border-color: #fcc;
+  --error-text-color: #c33;
+  --checkbox-size: 16px;
+  --focus-shadow-opacity: 0.25;
+  --disabled-opacity: 0.6;
+  --line-height-normal: 1;
+  --padding-xs: 10px;
 
-  --bg-image: url('C:/Users/hughk/OneDrive/Desktop/Stuff/Code/market-brief/src/view/web/src/assets/bg-image.png');
+  --bg-image: url('../../assets/bg-image.png');
 }
 
 .auth-container {
@@ -102,7 +112,7 @@
   font-weight: var(--font-weight-md);
   margin-bottom: var(--spacing-xl);
   text-align: center;
-  line-height: 1;
+  line-height: var(--line-height-normal);
 }
 
 .external-auth-button {
@@ -185,8 +195,8 @@
 }
 
 .remember-me input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
   cursor: pointer;
 }
 
@@ -216,6 +226,8 @@
 
 .form-input:focus {
   outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 var(--focus-outline-width) rgba(0, 123, 255, var(--focus-shadow-opacity));
 }
 
 .auth-button {
@@ -238,6 +250,11 @@
   background-color: var(--primary-active);
 }
 
+.auth-button:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
 .auth-footer-text {
   text-align: center;
   margin-top: var(--spacing-lg);
@@ -255,25 +272,29 @@
   text-decoration: underline;
 }
 
+.error-message {
+  background-color: var(--error-bg-color);
+  border: var(--border-width) solid var(--error-border-color);
+  color: var(--error-text-color);
+  padding: var(--padding-xs);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .auth-container {
     flex-direction: column;
   }
   
   .auth-left {
-    min-height: var(--mobile-vh-left);
-    box-sizing: border-box;
-  }
-  
-  .auth-left-background {
-    width: 100%;
-    height: 100%;
-    min-height: calc(var(--mobile-vh-left) - (var(--spacing-md) * 2));
+    display: none;
   }
   
   .auth-right {
     flex: none;
-    min-height: var(--mobile-vh-right);
+    min-height: 100vh;
     padding: var(--spacing-md);
   }
 

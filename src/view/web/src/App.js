@@ -10,6 +10,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/home" element={<h1>Home Page - Protected</h1>} />
       </Routes>
     </Router>
   );

@@ -1,10 +1,29 @@
 import './auth.css';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ReactComponent as GoogleIcon } from '../../assets/google-icon.svg';
 import { ReactComponent as GitHubIcon } from '../../assets/github-icon.svg';
+import authService from '../../services/authService';
 
 function Signup() {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleGoogleSignup = () => {
     console.log('Google signup clicked');
@@ -14,9 +33,61 @@ function Signup() {
     console.log('GitHub signup clicked');
   };
 
-  const handleSignup = (e) => {
+  const validateForm = () => {
+    if (!formData.firstName.trim()) {
+      setError('First name is required');
+      return false;
+    }
+    if (!formData.lastName.trim()) {
+      setError('Last name is required');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return false;
+    }
+    if (!formData.password) {
+      setError('Password is required');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-    console.log('Regular signup submitted');
+    setError('');
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const userData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        confirm_password: formData.confirmPassword
+      };
+
+      await authService.signup(userData);
+      
+      navigate('/home');
+    } catch (error) {
+      setError(error.message || 'Signup failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogin = () => {
@@ -32,6 +103,8 @@ function Signup() {
         <div className="auth-card">
           <h1 className="auth-title">💼 Market Brief</h1>
           <h2 className="auth-description">Sign up to continue</h2>
+          
+          {error && <div className="error-message">{error}</div>}
           
           <button className="external-auth-button" onClick={handleGoogleSignup}>
             <GoogleIcon className="external-auth-icon" />
@@ -53,51 +126,61 @@ function Signup() {
             <div className="form-group">
               <input
                 type="text"
-                id="firstName"
+                name="firstName"
                 className="form-input"
                 placeholder="First Name"
+                value={formData.firstName}
+                onChange={handleInputChange}
                 required
               />
             </div>
             <div className="form-group">
               <input
                 type="text"
-                id="lastName"
+                name="lastName"
                 className="form-input"
                 placeholder="Last Name"
+                value={formData.lastName}
+                onChange={handleInputChange}
                 required
               />
             </div>
             <div className="form-group">
               <input
                 type="email"
-                id="email"
+                name="email"
                 className="form-input"
                 placeholder="Email"
+                value={formData.email}
+                onChange={handleInputChange}
                 required
               />
             </div>
             <div className="form-group">
               <input
                 type="password"
-                id="password"
+                name="password"
                 className="form-input"
                 placeholder="Password"
+                value={formData.password}
+                onChange={handleInputChange}
                 required
               />
             </div>
             <div className="form-group">
               <input
                 type="password"
-                id="confirmPassword"
+                name="confirmPassword"
                 className="form-input"
                 placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
                 required
               />
             </div>
             
-            <button type="submit" className="auth-button">
-              SIGN UP
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              CREATE ACCOUNT
             </button>
           </form>
           

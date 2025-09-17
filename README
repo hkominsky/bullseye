@@ -1,0 +1,20 @@
+Back End -
+
+    Webhook Server:
+    python earnings_webhook_controller.py
+    ---------------
+    ngrok http 8080
+
+    Manual:
+    python -m src.controller.manual
+
+Front End -
+
+    FastAPI Startup:
+    cd src/view/api
+    uvicorn main:app --reload
+
+    React Startup:
+    cd src/view/web
+    npm start
+
