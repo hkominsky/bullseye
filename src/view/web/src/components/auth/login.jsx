@@ -57,40 +57,41 @@ function Login() {
    * 
    * @param {Event} e - The form submit event
    */
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError('');
 
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all fields');
-      return;
+  if (!formData.email || !formData.password) {
+    setError('Please fill in all fields');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    await authService.login({
+      email: formData.email,
+      password: formData.password,
+      rememberMe: formData.rememberMe
+    });
+    
+    if (!formData.rememberMe) {
+      authService.setSessionTimeout(30);
     }
-
-    setIsLoading(true);
-
-    try {
-      // Call authentication service
-      await authService.login({
-        email: formData.email,
-        password: formData.password,
-        // Note: rememberMe functionality would need to be implemented in authService
-        rememberMe: formData.rememberMe
-      });
-      
-      navigate('/home');
-    } catch (error) {
-      setError(error.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    
+    navigate('/home');
+  } catch (error) {
+    setError(error.message || 'Login failed. Please check your credentials.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   /**
    * Initiates forgot password flow
    */
   const handleForgotPassword = () => {
-    console.log('Forgot password clicked');
-    // TODO: Implement password reset functionality
+    navigate('/reset-password');
   };
 
   /**

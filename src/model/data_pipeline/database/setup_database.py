@@ -345,7 +345,7 @@ def verify_setup():
         return False
 
 def main():
-    logger.info("Starting database setup for Market Brief Emails...")
+    logger.info("Starting database setup for emails...")
     
     # Test connection
     if not test_connection():

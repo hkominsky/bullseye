@@ -1,7 +1,7 @@
 :root {
-  --primary-color: #ecf95a;
-  --primary-hover: #dce672;
-  --primary-active: #d2db53;
+  --primary-color: #7dca9c;
+  --primary-hover: #5cac7c;
+  --primary-active: #50966c;
   --text-primary: #333;
   --text-light: white;
   --text-secondary: #9da1a5;
@@ -111,10 +111,21 @@
   max-width: var(--card-max-width);
 }
 
+.auth-back-link {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: var(--font-weight-md);
+  background-color: var(--input-background);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
 .auth-title {
   color: var(--text-primary);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-xl);
+  margin-top: var(--spacing-2xl);
   margin-bottom: var(--spacing-xs);
   text-align: center;
 }
@@ -176,6 +187,7 @@
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   font-weight: var(--font-weight-md);
+  cursor: pointer;
 }
 
 .remember-me input[type="checkbox"] {
@@ -189,7 +201,7 @@
 .forgot-password {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-sm);
-  color: var(--text-secondary);
+  color: var(--primary-color);
   text-decoration: none;
   cursor: pointer;
   background: none;
@@ -198,13 +210,9 @@
   font-family: inherit;
 }
 
-.forgot-password:hover {
-  text-decoration: underline;
-}
-
 .auth-button {
   background-color: var(--primary-color);
-  color: var(--text-primary);
+  color: var(--text-light);
   padding: var(--spacing-md);
   border: none;
   border-radius: var(--radius-sm);
@@ -294,10 +302,11 @@
 }
 
 .auth-footer-link {
+  margin-left: var(--spacing-xxs);
   padding: var(--spacing-xxs) var(--spacing-sm);
   background-color: var(--primary-color);
   border-radius: var(--radius-lg);
-  color: var(--text-primary);
+  color: var(--text-light);
   cursor: pointer;
 }
 

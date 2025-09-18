@@ -1,15 +1,24 @@
+import os
+from datetime import datetime, timedelta
+from pathlib import Path
+import jwt
+import base64
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, EmailStr
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Attachment
 from sqlalchemy.orm import Session
 from database import get_db, User, engine, Base
 from schemas import UserCreate, UserLogin, UserResponse, Token
 from auth import get_password_hash, verify_password, create_access_token, verify_token
-from datetime import timedelta
+
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Market Brief API", version="1.0.0")
+app = FastAPI(title="Bullseye API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +29,19 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
+env_path = Path(__file__).parent.parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetResponse(BaseModel):
+    message: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     """Extract and validate user from JWT token in Authorization header."""
@@ -99,10 +121,192 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current authenticated user information."""
     return current_user
 
+@app.post("/auth/reset-password", response_model=PasswordResetResponse)
+def reset_password(request: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Send a password reset email to the user."""
+    try:
+        user = db.query(User).filter(User.email == request.email).first()
+        if not user:
+            return PasswordResetResponse(message="If the email exists in our system, a reset link has been sent")
+        
+        reset_token = jwt.encode({
+            'email': request.email,
+            'purpose': 'password-reset',
+            'exp': datetime.utcnow() + timedelta(hours=1)
+        }, os.getenv('SECRET_KEY'), algorithm='HS256')
+        
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        reset_url = f"{frontend_url}/reset-password-confirm?token={reset_token}"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset Password</title>
+            <style>
+                body {{
+                    margin: 0;
+                    padding: 20px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                    background-color: #f8f9fa;
+                    color: #333;
+                    line-height: 1.6;
+                }}
+                
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: white;
+                    padding: 40px;
+                    border-radius: 8px;
+                }}
+                
+                .email-content {{
+                    margin-bottom: 40px;
+                }}
+                
+                .email-text {{
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                }}
+                
+                .reset-button {{
+                    display: inline-block;
+                    margin: 5px 0;
+                    padding: 7px 17px;
+                    background-color: #7dca9c;
+                    border-radius: 13px;
+                    color: #ffffff !important;
+                    text-decoration: none !important;
+                    font-size: 17px;
+                    font-weight: normal;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                }}
+                
+                .reset-button:hover {{
+                    background-color: #5cac7c;
+                    color: #ffffff !important;
+                }}
+                
+                a.reset-button {{
+                    color: #ffffff !important;
+                }}
+                
+                a.reset-button:visited {{
+                    color: #ffffff !important;
+                }}
+                
+                a.reset-button:active {{
+                    color: #ffffff !important;
+                }}
+                
+                @media only screen and (max-width: 600px) {{
+                    body {{
+                        padding: 10px;
+                    }}
+                    .email-container {{
+                        padding: 20px;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="email-container">
+                <div class="logo-header" style="text-align: center; margin-bottom: 30px; padding-bottom: 20px;">
+                    <img src="http://cdn.mcauto-images-production.sendgrid.net/2c9d147728e484c3/da122e1a-61cd-416c-9d1d-d39efce750f1/315x80.png" 
+                         alt="Bullseye Logo" 
+                         style="max-height: 60px; width: auto; object-fit: contain;" />
+                </div>
+                
+                <div class="email-content">
+                    <p class="email-text">Dear Valued Client,</p>
+                    
+                    <p class="email-text">Check the link below to reset your app login password. Please complete the reset within 24 hours.</p>
+                    
+                    <p class="email-text">Thank you!</p>
+                    
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_url}" class="reset-button">Reset Password 🡭</a>
+                    </p>
+                    
+                    <p class="email-text" style="margin-top: 30px;">
+                        Sincerely,<br>
+                        The Bullseye Team
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        text_content = f"""
+        Dear Valued Client,
+
+        Check the link below to reset your app login password. Please complete the reset within 24 hours. Thank you!
+
+        {reset_url}
+
+        Sincerely,
+        The Bullseye Team
+        """
+        
+        message = Mail(
+            from_email=os.getenv('SENDER_EMAIL'),
+            to_emails=request.email,
+            subject='Reset Password',
+            html_content=html_content,
+            plain_text_content=text_content
+        )
+        
+        # No more attachment code needed!
+        sg.send(message)
+        
+        return PasswordResetResponse(message="Password reset email sent successfully")
+        
+    except Exception as e:
+        print(f"SendGrid error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send reset email. Please try again.")
+
+@app.post("/auth/confirm-reset-password")
+def confirm_reset_password(request: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """Confirm password reset and update user's password."""
+    try:
+        payload = jwt.decode(
+            request.token, 
+            os.getenv('SECRET_KEY'), 
+            algorithms=['HS256']
+        )
+        
+        email = payload.get('email')
+        purpose = payload.get('purpose')
+        
+        if purpose != 'password-reset':
+            raise HTTPException(status_code=400, detail="Invalid token")
+        
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user.hashed_password = get_password_hash(request.new_password)
+        db.commit()
+        
+        return {"message": "Password reset successfully"}
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Reset token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=400, detail="Invalid reset token")
+    except Exception as e:
+        print(f"Password reset confirm error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")
+
 @app.get("/")
 def read_root():
     """Health check endpoint for API status."""
-    return {"message": "Market Brief API is running"}
+    return {"message": "Bullseye API is running"}
 
 if __name__ == "__main__":
     import uvicorn

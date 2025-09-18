@@ -135,14 +135,14 @@ function Signup() {
 
   return (
     <div className="auth-container">
-      {/* Left side - Background area */}
+      {/* Background area */}
       <div className="auth-left">
         <div className="auth-left-background"></div>
       </div>
       
-      {/* Right side - Form content */}
+      {/* Form content */}
       <div className="auth-right">
-        {/* Logo in top right corner */}
+        {/* Logo */}
         <img 
           src={logoImage} 
           alt="Company Logo" 
@@ -154,10 +154,10 @@ function Signup() {
           <h1 className="auth-title">Get Started</h1>
           <h2 className="auth-description">Comprehensive market intelligence made simple.</h2>
           
-          {/* Error message display */}
+          {/* Error message */}
           {error && <div className="error-message">{error}</div>}
 
-          {/* Main signup form */}
+          {/* Signup form */}
           <form className="auth-form" onSubmit={handleSignup}>
             <div className="form-group">
               <input
