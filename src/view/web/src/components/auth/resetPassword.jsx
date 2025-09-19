@@ -88,7 +88,7 @@ function ResetPassword() {
       <AuthLayout
         title="Check Your Email"
         description={`We've sent a password reset link to ${formData.email}.`}
-        showBackButton={true}
+        showBackButton={false}
         error={error}
       >
         <div className="auth-form">

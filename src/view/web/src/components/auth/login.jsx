@@ -1,6 +1,5 @@
-// components/auth/login.jsx
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactComponent as GoogleIcon } from '../../assets/google-icon.svg';
 import { ReactComponent as GitHubIcon } from '../../assets/github-icon.svg';
 import { ReactComponent as EyeIcon } from '../../assets/eye-icon.svg';
@@ -9,10 +8,11 @@ import AuthLayout from './authLayout';
 import authService from '../../services/authService';
 
 /**
- * User authentication form component
+ * User authentication form component with OAuth support
  */
 function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -24,6 +24,13 @@ function Login() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const sessionLimit = 30; // minutes
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'oauth_failed') {
+      setError('OAuth authentication failed. Please try again or use email/password login.');
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -38,11 +45,21 @@ function Login() {
   };
 
   const handleGoogleLogin = () => {
-    console.log('Google login clicked');
+    try {
+      setError('');
+      authService.initiateGoogleAuth();
+    } catch (error) {
+      setError('Failed to initiate Google authentication. Please try again.');
+    }
   };
 
   const handleGitHubLogin = () => {
-    console.log('GitHub login clicked');
+    try {
+      setError('');
+      authService.initiateGitHubAuth();
+    } catch (error) {
+      setError('Failed to initiate GitHub authentication. Please try again.');
+    }
   };
 
   const handleLogin = async (e) => {
@@ -169,6 +186,7 @@ function Login() {
           className="external-auth-button" 
           onClick={handleGoogleLogin}
           aria-label="Log in with Google"
+          disabled={isLoading}
         >
           <GoogleIcon className="external-auth-icon" />
           Google
@@ -178,6 +196,7 @@ function Login() {
           className="external-auth-button" 
           onClick={handleGitHubLogin}
           aria-label="Log in with GitHub"
+          disabled={isLoading}
         >
           <GitHubIcon className="external-auth-icon" />
           GitHub

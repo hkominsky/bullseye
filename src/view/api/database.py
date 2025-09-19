@@ -34,6 +34,12 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    oauth_provider = Column(String, nullable=True)
+    oauth_provider_id = Column(String, nullable=True)
+    reset_token = Column(String, nullable=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
+    tickers = Column(String, nullable=True)
+    
 
 def get_db():
     """Database dependency that provides a SQLAlchemy session with automatic cleanup."""

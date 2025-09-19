@@ -8,7 +8,7 @@ import AuthLayout from './authLayout';
 import authService from '../../services/authService';
 
 /**
- * User registration form component
+ * User registration form component with OAuth support
  */
 function Signup() {
   const navigate = useNavigate();
@@ -38,11 +38,21 @@ function Signup() {
   };
 
   const handleGoogleSignup = () => {
-    console.log('Google signup clicked');
+    try {
+      setError('');
+      authService.initiateGoogleAuth();
+    } catch (error) {
+      setError('Failed to initiate Google authentication. Please try again.');
+    }
   };
 
   const handleGitHubSignup = () => {
-    console.log('GitHub signup clicked');
+    try {
+      setError('');
+      authService.initiateGitHubAuth();
+    } catch (error) {
+      setError('Failed to initiate GitHub authentication. Please try again.');
+    }
   };
 
   const validateForm = () => {
@@ -89,7 +99,8 @@ function Signup() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        confirm_password: formData.password
       };
 
       await authService.signup(userData);
@@ -195,6 +206,7 @@ function Signup() {
           className="external-auth-button" 
           onClick={handleGoogleSignup}
           aria-label="Sign up with Google"
+          disabled={isLoading}
         >
           <GoogleIcon className="external-auth-icon" />
           Google
@@ -204,6 +216,7 @@ function Signup() {
           className="external-auth-button" 
           onClick={handleGitHubSignup}
           aria-label="Sign up with GitHub"
+          disabled={isLoading}
         >
           <GitHubIcon className="external-auth-icon" />
           GitHub

@@ -155,6 +155,47 @@ class AuthService {
   }
 
   /**
+   * Initiate Google OAuth authentication flow.
+   * Redirects user to Google's authorization server.
+   */
+  initiateGoogleAuth() {
+    window.location.href = `${API_BASE_URL}/auth/google`;
+  }
+
+  /**
+   * Initiate GitHub OAuth authentication flow.
+   * Redirects user to GitHub's authorization server.
+   */
+  initiateGitHubAuth() {
+    window.location.href = `${API_BASE_URL}/auth/github`;
+  }
+
+  /**
+   * Process OAuth callback with token from URL parameters.
+   * Called after successful OAuth redirect from providers.
+   * @param {string} token - JWT token from OAuth callback
+   * @param {string} provider - OAuth provider ('google' or 'github')
+   * @param {boolean} rememberMe - Whether to persist the session
+   * @returns {Promise<Object>} Promise resolving to user data
+   */
+  async processOAuthCallback(token, provider, rememberMe = false) {
+    try {
+      if (!token) {
+        throw new Error('No token received from OAuth provider');
+      }
+
+      this.setToken(token, rememberMe);
+
+      const user = await this.getCurrentUser();
+
+      return user;
+    } catch (error) {
+      this.removeToken();
+      throw error;
+    }
+  }
+
+  /**
    * Send password reset email to user.
    * @param {string} email - User's email address
    * @returns {Promise<Object>} Promise resolving to success message
