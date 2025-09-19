@@ -23,6 +23,7 @@ function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const minPasswordLength = 6;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,8 +66,8 @@ function Signup() {
       return false;
     }
     
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formData.password.length < minPasswordLength) {
+      setError(`Password must be at least ${minPasswordLength} characters long`);
       return false;
     }
     
@@ -160,7 +161,7 @@ function Signup() {
             value={formData.password}
             onChange={handleInputChange}
             required
-            minLength="6"
+            minLength={minPasswordLength}
             aria-label="Password"
           />
           <button

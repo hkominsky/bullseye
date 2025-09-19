@@ -23,6 +23,7 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const sessionLimit = 30; // minutes
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -63,7 +64,7 @@ function Login() {
       });
       
       if (!formData.rememberMe) {
-        authService.setSessionTimeout(30);
+        authService.setSessionTimeout(sessionLimit);
       }
       
       navigate('/home');
@@ -103,8 +104,6 @@ function Login() {
             autoComplete="email"
           />
         </div>
-        
-        {/* Updated password field with toggle */}
         <div className="form-group password-input-container">
           <input
             type={showPassword ? "text" : "password"}

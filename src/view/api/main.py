@@ -149,9 +149,6 @@ def reset_password(request: PasswordResetRequest, db: Session = Depends(get_db))
                 body {{
                     margin: 0;
                     padding: 20px;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-                    background-color: #f8f9fa;
-                    color: #333;
                     line-height: 1.6;
                 }}
                 
@@ -245,7 +242,9 @@ def reset_password(request: PasswordResetRequest, db: Session = Depends(get_db))
         text_content = f"""
         Dear Valued Client,
 
-        Check the link below to reset your app login password. Please complete the reset within 24 hours. Thank you!
+        Check the link below to reset your app login password. Please complete the reset within 24 hours. 
+        
+        Thank you!
 
         {reset_url}
 

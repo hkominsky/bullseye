@@ -17,6 +17,9 @@ function ResetPassword() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
+  const cooldownTime = 10000;
+  const opacityDisabled = 0.6;
+  const opacityEnabled = 1.0;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,10 +57,9 @@ function ResetPassword() {
     try {
       await authService.resetPassword(formData.email);
       setIsSubmitted(true);
-      // Start cooldown after successful resend
       if (isSubmitted) {
         setIsOnCooldown(true);
-        setTimeout(() => setIsOnCooldown(false), 10000); // 10 second cooldown
+        setTimeout(() => setIsOnCooldown(false), cooldownTime);
       }
     } catch (error) {
       setError(error.message || 'Failed to send reset email. Please try again.');
@@ -108,7 +110,7 @@ function ResetPassword() {
             onClick={isResendDisabled ? undefined : handleResend}
             style={{ 
               cursor: isResendDisabled ? 'not-allowed' : 'pointer',
-              opacity: isResendDisabled ? 0.6 : 1
+              opacity: isResendDisabled ? opacityDisabled : opacityEnabled
             }}
           >
             Resend
@@ -146,7 +148,7 @@ function ResetPassword() {
           disabled={isLoading}
           aria-label="Send Email"
         >
-          {isLoading ? 'Sending...' : 'Send Email'}
+          Send Email
         </button>
       </form>
     </AuthLayout>
