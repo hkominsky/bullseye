@@ -216,9 +216,9 @@ def reset_password(request: PasswordResetRequest, db: Session = Depends(get_db))
         <body>
             <div class="email-container">
                 <div class="logo-header" style="text-align: center; margin-bottom: 30px; padding-bottom: 20px;">
-                    <img src="http://cdn.mcauto-images-production.sendgrid.net/2c9d147728e484c3/da122e1a-61cd-416c-9d1d-d39efce750f1/315x80.png" 
-                         alt="Bullseye Logo" 
-                         style="max-height: 60px; width: auto; object-fit: contain;" />
+                    <img src="https://cdn.mcauto-images-production.sendgrid.net/2c9d147728e484c3/da122e1a-61cd-416c-9d1d-d39efce750f1/315x80.png" 
+                        alt="Bullseye Logo" 
+                        style="max-height: 60px; width: auto; object-fit: contain;" />
                 </div>
                 
                 <div class="email-content">

@@ -1,14 +1,10 @@
-import './auth.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logoImage from '../../assets/logo.png';
+import AuthLayout from './authLayout';
 import authService from '../../services/authService';
 
 /**
- * A password reset form that allows users to request a password reset email.
- * Provides a clean, accessible interface for users to recover their accounts.
- * 
- * @returns {JSX.Element} The reset password form component
+ * Password reset form component
  */
 function ResetPassword() {
   const navigate = useNavigate();
@@ -19,11 +15,9 @@ function ResetPassword() {
   
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOnCooldown, setIsOnCooldown] = useState(false);
 
-  /**
-   * Handles input field changes and updates form state
-   * @param {Event} e - The input change event
-   */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -32,11 +26,6 @@ function ResetPassword() {
     }));
   };
 
-  /**
-   * Validates form fields before submission
-   * 
-   * @returns {boolean} True if form is valid, false otherwise
-   */
   const validateForm = () => {
     if (!formData.email.trim()) {
       setError('Email is required');
@@ -52,116 +41,115 @@ function ResetPassword() {
     return true;
   };
 
-  /**
-   * Handles form submission for password reset request
-   * Validates form, calls authService, and handles success/error states
-   * 
-   * @param {Event} e - The form submit event
-   */
   const handleResetPassword = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setError('');
 
-    if (!validateForm()) {
+    if (!isSubmitted && !validateForm()) {
       return;
     }
+
+    setIsLoading(true);
 
     try {
       await authService.resetPassword(formData.email);
       setIsSubmitted(true);
+      // Start cooldown after successful resend
+      if (isSubmitted) {
+        setIsOnCooldown(true);
+        setTimeout(() => setIsOnCooldown(false), 10000); // 10 second cooldown
+      }
     } catch (error) {
       setError(error.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  /**
-   * Navigates user back to the previous page
-   */
   const handleBack = () => {
-    navigate(-1);
+    navigate('/login', { state: { direction: 'back' } });
   };
 
-  return (
-    <div className="auth-container">
-      {/* Background area */}
-      <div className="auth-left">
-        <div className="auth-left-background"></div>
-      </div>
-      
-      {/* Form content */}
-      <div className="auth-right">
-        {/* Logo */}
-        <img 
-          src={logoImage} 
-          alt="Company Logo" 
-          className="auth-logo"
-        />
-        
-        <div className="auth-card">
-          {!isSubmitted ? (
-            <>
-              {/* Back button */}
-              <div className="auth-back-button" onClick={handleBack}>
-                <span className="auth-back-link">🡰</span>
-              </div>
-              
-              {/* Header section */}
-              <h1 className="auth-title">Forgot Password</h1>
-              <h2 className="auth-description">Enter your email address and we'll send you a link to reset your password.</h2>
-              
-              {/* Error message */}
-              {error && <div className="error-message">{error}</div>}
+  const handleResend = async () => {
+    if (isOnCooldown || isLoading) {
+      return;
+    }
+    
+    setError('');
+    await handleResetPassword();
+  };
 
-              {/* Form */}
-              <form className="auth-form" onSubmit={handleResetPassword}>
-                <div className="form-group">
-                  <input
-                    type="email"
-                    name="email"
-                    className="form-input"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    aria-label="Email Address"
-                  />
-                </div>
-                
-                <button 
-                  type="submit" 
-                  className="auth-button"
-                  aria-label="Send Email"
-                >
-                  Send Email
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              {/* Back button */}
-              <div className="auth-back-button" onClick={handleBack}>
-                <span className="auth-back-link">🡰</span>
-              </div>
-              
-              {/* Success state */}
-              <h1 className="auth-title">Check Your Email</h1>
-              <h2 className="auth-description">We've sent a password reset link to {formData.email}.</h2>
-              
-              <div className="auth-form">
-                <button 
-                  type="button" 
-                  className="auth-button" 
-                  onClick={handleBack}
-                  aria-label="Back"
-                >
-                  Back
-                </button>
-              </div>
-            </>
-          )}
+  if (isSubmitted) {
+    const isResendDisabled = isLoading || isOnCooldown;
+    
+    return (
+      <AuthLayout
+        title="Check Your Email"
+        description={`We've sent a password reset link to ${formData.email}.`}
+        showBackButton={true}
+        error={error}
+      >
+        <div className="auth-form">
+          <button 
+            type="button" 
+            className="auth-button" 
+            onClick={handleBack}
+            disabled={isLoading}
+            aria-label="Back"
+          >
+            Back
+          </button>
         </div>
-      </div>
-    </div>
+
+        <p className="auth-footer-text">
+          Didn't see the email? {' '}
+          <span 
+            className={`auth-resend-link ${isResendDisabled ? 'disabled' : ''}`}
+            onClick={isResendDisabled ? undefined : handleResend}
+            style={{ 
+              cursor: isResendDisabled ? 'not-allowed' : 'pointer',
+              opacity: isResendDisabled ? 0.6 : 1
+            }}
+          >
+            Resend
+          </span>
+        </p>
+      </AuthLayout>
+    );
+  }
+
+  return (
+    <AuthLayout
+      title="Forgot Password"
+      description="Enter your email address and we'll send you a link to reset your password."
+      showBackButton={true}
+      error={error}
+    >
+      {/* Form */}
+      <form className="auth-form" onSubmit={handleResetPassword}>
+        <div className="form-group">
+          <input
+            type="email"
+            name="email"
+            className="form-input"
+            placeholder="Email"
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+            aria-label="Email Address"
+          />
+        </div>
+        
+        <button 
+          type="submit" 
+          className={`auth-button ${isLoading ? 'loading' : ''}`}
+          disabled={isLoading}
+          aria-label="Send Email"
+        >
+          {isLoading ? 'Sending...' : 'Send Email'}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }
 

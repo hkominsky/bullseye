@@ -43,10 +43,12 @@
   --icon-size: 20px;
   --divider-height: 1px;
   --checkbox-size: 16px;
+  --button-size: 24px;
   
   --transition-default: all 0.2s ease;
   --focus-shadow-opacity: 0.25;
   --disabled-opacity: 0.6;
+  --hover-bg-opacity: 0.05;
   
   --bg-image: url('../../assets/background.png');
   
@@ -173,6 +175,53 @@
   outline: none;
 }
 
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  padding-right: calc(var(--button-size) + var(--spacing-md) + var(--spacing-xs));
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  box-sizing: border-box;
+  background-color: var(--input-background);
+}
+
+.password-input:focus {
+  outline: none;
+}
+
+.password-toggle-button {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-xxs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-default);
+  border-radius: var(--radius-sm);
+  width: var(--button-size);
+  height: var(--button-size);
+  z-index: 1;
+}
+
+.password-toggle-button svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 .form-options {
   display: flex;
   justify-content: space-between;
@@ -220,6 +269,7 @@
   font-weight: var(--font-weight-lg);
   cursor: pointer;
   margin-top: var(--spacing-sm);
+  transition: var(--transition-default);
 }
 
 .auth-button:hover {
@@ -233,6 +283,10 @@
 .auth-button:disabled {
   opacity: var(--disabled-opacity);
   cursor: not-allowed;
+}
+
+.auth-button.loading {
+  cursor: progress;
 }
 
 .divider {
@@ -312,6 +366,16 @@
 
 .auth-footer-link:hover {
   background-color: var(--primary-hover);
+}
+
+.auth-resend-link {
+  color: var(--primary-color);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-resend-link:hover {
+  color: var(--primary-hover);
 }
 
 @media (max-width: 768px) {
