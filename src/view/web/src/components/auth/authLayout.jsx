@@ -1,11 +1,20 @@
-// components/auth/authLayout.jsx
 import './auth.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import logoImage from '../../assets/logo.png';
 
 /**
- * Reusable authentication layout component
+ * Reusable authentication layout component that provides consistent UI structure
+ * for all authentication pages with animated transitions
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.title - Main title displayed on the auth card
+ * @param {string} props.description - Description text displayed below title
+ * @param {React.ReactNode} props.children - Form content rendered inside the card
+ * @param {boolean} [props.showBackButton=false] - Whether to show back button
+ * @param {string} [props.error] - Error message to display above form
+ * @param {Function} [props.onBackClick] - Custom back button click handler
+ * @returns {JSX.Element} The rendered authentication layout
  */
 function AuthLayout({ 
   title, 
@@ -18,6 +27,11 @@ function AuthLayout({
   const navigate = useNavigate();
   const location = useLocation();
 
+  /**
+   * Handles back button click event
+   * Uses custom handler if provided, otherwise navigates to login
+   * @returns {void}
+   */
   const handleBack = () => {
     if (onBackClick) {
       onBackClick();
@@ -26,40 +40,67 @@ function AuthLayout({
     }
   };
 
-  const direction = location.state?.direction || 'forward';
-  const isBackNavigation = direction === 'back';
-
-  const slideVariants = {
-    initial: { 
-      x: isBackNavigation ? -100 : 100, 
-      opacity: 0 
-    },
-    animate: { 
-      x: 0, 
-      opacity: 1 
-    },
-    exit: { 
-      x: isBackNavigation ? 100 : -100, 
-      opacity: 0 
-    }
+  /**
+   * Gets navigation direction from location state
+   * @returns {string} Direction of navigation ('forward' or 'back')
+   */
+  const getDirection = () => {
+    return location.state?.direction || 'forward';
   };
 
-  const transition = {
-    type: "tween",
-    ease: "easeInOut",
-    duration: 0.4
+  /**
+   * Determines if current navigation is backwards
+   * @returns {boolean} True if navigating back, false otherwise
+   */
+  const checkIsBackNavigation = () => {
+    return getDirection() === 'back';
   };
+
+  /**
+   * Creates slide animation variants based on navigation direction
+   * @returns {Object} Framer Motion animation variants
+   */
+  const createSlideVariants = () => {
+    const isBack = checkIsBackNavigation();
+    
+    return {
+      initial: { 
+        x: isBack ? -100 : 100, 
+        opacity: 0 
+      },
+      animate: { 
+        x: 0, 
+        opacity: 1 
+      },
+      exit: { 
+        x: isBack ? 100 : -100, 
+        opacity: 0 
+      }
+    };
+  };
+
+  /**
+   * Creates transition configuration for animations
+   * @returns {Object} Framer Motion transition settings
+   */
+  const createTransition = () => {
+    return {
+      type: "tween",
+      ease: "easeInOut",
+      duration: 0.4
+    };
+  };
+
+  const slideVariants = createSlideVariants();
+  const transition = createTransition();
 
   return (
     <div className="auth-container">
-      {/* Background area */}
       <div className="auth-left">
         <div className="auth-left-background"></div>
       </div>
       
-      {/* Form content with animation */}
       <div className="auth-right">
-        {/* Logo */}
         <img 
           src={logoImage} 
           alt="Company Logo" 
@@ -74,21 +115,17 @@ function AuthLayout({
           exit="exit"
           transition={transition}
         >
-          {/* Back button */}
           {showBackButton && (
             <div className="auth-back-button" onClick={handleBack}>
               <span className="auth-back-link">🡰</span>
             </div>
           )}
           
-          {/* Header section */}
           <h1 className="auth-title">{title}</h1>
           <h2 className="auth-description">{description}</h2>
           
-          {/* Error message */}
           {error && <div className="error-message">{error}</div>}
 
-          {/* Form content */}
           {children}
         </motion.div>
       </div>

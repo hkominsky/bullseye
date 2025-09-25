@@ -8,7 +8,8 @@ import AuthLayout from './authLayout';
 import authService from '../../services/authService';
 
 /**
- * User authentication form component with OAuth support
+ * Login component for user authentication with email/password and OAuth options
+ * @returns {JSX.Element} The rendered login form
  */
 function Login() {
   const navigate = useNavigate();
@@ -23,15 +24,28 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const sessionLimit = 30; // minutes
+  const sessionLimit = 30;
 
-  useEffect(() => {
+  /**
+   * Checks URL parameters for OAuth errors and sets appropriate error message
+   * @returns {void}
+   */
+  const checkForOAuthError = () => {
     const errorParam = searchParams.get('error');
     if (errorParam === 'oauth_failed') {
       setError('OAuth authentication failed. Please try again or use email/password login.');
     }
+  };
+
+  useEffect(() => {
+    checkForOAuthError();
   }, [searchParams]);
 
+  /**
+   * Handles input field changes and updates form data state
+   * @param {Event} e - The input change event
+   * @returns {void}
+   */
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -40,10 +54,18 @@ function Login() {
     }));
   };
 
+  /**
+   * Toggles password visibility between text and password input types
+   * @returns {void}
+   */
   const togglePasswordVisibility = () => {
     setShowPassword(prev => !prev);
   };
 
+  /**
+   * Initiates Google OAuth authentication flow
+   * @returns {void}
+   */
   const handleGoogleLogin = () => {
     try {
       setError('');
@@ -53,6 +75,10 @@ function Login() {
     }
   };
 
+  /**
+   * Initiates GitHub OAuth authentication flow
+   * @returns {void}
+   */
   const handleGitHubLogin = () => {
     try {
       setError('');
@@ -62,12 +88,38 @@ function Login() {
     }
   };
 
+  /**
+   * Validates that both email and password fields are filled
+   * @returns {boolean} True if all required fields are filled, false otherwise
+   */
+  const validateLoginFields = () => {
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return false;
+    }
+    return true;
+  };
+
+  /**
+   * Sets session timeout if remember me option is not selected
+   * @returns {void}
+   */
+  const configureSessionTimeout = () => {
+    if (!formData.rememberMe) {
+      authService.setSessionTimeout(sessionLimit);
+    }
+  };
+
+  /**
+   * Handles form submission and user login process
+   * @param {Event} e - The form submit event
+   * @returns {Promise<void>}
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all fields');
+    if (!validateLoginFields()) {
       return;
     }
 
@@ -80,10 +132,7 @@ function Login() {
         rememberMe: formData.rememberMe
       });
       
-      if (!formData.rememberMe) {
-        authService.setSessionTimeout(sessionLimit);
-      }
-      
+      configureSessionTimeout();
       navigate('/home');
     } catch (error) {
       setError(error.message || 'Login failed. Please check your credentials.');
@@ -92,10 +141,18 @@ function Login() {
     }
   };
 
+  /**
+   * Navigates to the forgot password page
+   * @returns {void}
+   */
   const handleForgotPassword = () => {
     navigate('/reset-password', { state: { direction: 'forward' } });
   };
 
+  /**
+   * Navigates to the signup page
+   * @returns {void}
+   */
   const handleSignup = () => {
     navigate('/signup', { state: { direction: 'forward' } });
   };
@@ -106,7 +163,6 @@ function Login() {
       description="Enter your email and password to access your account."
       error={error}
     >
-      {/* Login form */}
       <form className="auth-form" onSubmit={handleLogin}>
         <div className="form-group">
           <input
@@ -173,14 +229,12 @@ function Login() {
         </button>
       </form>
 
-      {/* Divider */}
       <div className="divider">
         <span className="divider-line"></span>
         <span className="divider-text">Or Login With</span>
         <span className="divider-line"></span>
       </div>
       
-      {/* External authentication buttons */}
       <div className="external-auth-container">
         <button 
           className="external-auth-button" 
@@ -203,7 +257,6 @@ function Login() {
         </button>
       </div>
       
-      {/* Footer link */}
       <p className="auth-footer-text">
         Don't have an account? <span className="auth-footer-link" onClick={handleSignup}>Sign up 🡭</span>
       </p>

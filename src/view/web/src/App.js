@@ -5,7 +5,7 @@ import SignUp from './components/auth/signup';
 import ResetPassword from './components/auth/resetPassword';
 import OAuthCallback from './components/auth/oAuthCallback';
 
-function AnimatedRoutes() {
+function AppRoutes() {
   const location = useLocation();
   
   const animatedRoutes = ['/login', '/signup', '/reset-password'];
@@ -42,7 +42,7 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
-      <AnimatedRoutes />
+      <AppRoutes />
     </Router>
   );
 }

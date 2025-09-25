@@ -36,7 +36,6 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
 
-# OAuth Configuration
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 GOOGLE_REDIRECT_URI = "http://localhost:8000/auth/google/callback"
@@ -81,7 +80,6 @@ def get_or_create_oauth_user(user_info: OAuthUserInfo, db: Session):
     user = db.query(User).filter(User.email == user_info.email).first()
     
     if not user:
-        # Create new user
         user = User(
             email=user_info.email,
             first_name=user_info.first_name,
@@ -324,23 +322,18 @@ def reset_password(request: PasswordResetRequest, db: Session = Depends(get_db))
         if not user:
             return PasswordResetResponse(message="If the email exists in our system, a reset link has been sent")
         
-        # Check if user already has a recent reset request (optional rate limiting)
         if (user.reset_token and user.reset_token_expiry and 
             user.reset_token_expiry > datetime.utcnow()):
             return PasswordResetResponse(message="Reset email already sent recently. Please check your inbox.")
         
-        # Generate a secure random token
         reset_token = secrets.token_urlsafe(32)
         
-        # Hash the token before storing (additional security)
         token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
         
-        # Store hashed token and expiry in database
         user.reset_token = token_hash
         user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
         db.commit()
         
-        # Send the unhashed token in the email
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         reset_url = f"{frontend_url}/reset-password-confirm?token={reset_token}"
         

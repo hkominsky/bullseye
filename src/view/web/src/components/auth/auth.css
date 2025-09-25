@@ -61,6 +61,14 @@
   --logo-margin: 12px;
   --logo-margin-tablet: 20px;
   --logo-margin-mobile: 16px;
+
+  --spinner-size: 40px;
+  --spinner-border-width: 3px;
+  --status-icon-size: 60px;
+  --callback-container-min-height: 80px;
+  --success-bg-opacity: 0.1;
+  --animation-duration-spin: 1s;
+  --animation-duration-fade: 0.3s;
 }
 
 .auth-container {
@@ -376,6 +384,70 @@
 
 .auth-resend-link:hover {
   color: var(--primary-hover);
+}
+
+/* OAuth Callback Styles */
+.callback-status-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: var(--spacing-xl);
+  min-height: var(--callback-container-min-height);
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border: var(--spinner-border-width) solid var(--border-color);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin var(--animation-duration-spin) linear infinite;
+}
+
+.status-icon {
+  width: var(--status-icon-size);
+  height: var(--status-icon-size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--animation-duration-fade) ease-in-out;
+}
+
+.status-icon.success {
+  background-color: rgba(125, 202, 156, var(--success-bg-opacity));
+  color: var(--primary-color);
+  border: var(--border-width) solid var(--primary-color);
+  border-width: calc(var(--border-width) * 2);
+}
+
+.status-icon.error {
+  background-color: var(--error-bg-color);
+  color: var(--error-text-color);
+  border: calc(var(--border-width) * 2) solid var(--error-border-color);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 768px) {

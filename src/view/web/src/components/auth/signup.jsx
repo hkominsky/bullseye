@@ -8,7 +8,8 @@ import AuthLayout from './authLayout';
 import authService from '../../services/authService';
 
 /**
- * User registration form component with OAuth support
+ * Signup component for user registration with email/password and OAuth options
+ * @returns {JSX.Element} The rendered signup form
  */
 function Signup() {
   const navigate = useNavigate();
@@ -25,6 +26,11 @@ function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const minPasswordLength = 6;
 
+  /**
+   * Handles input field changes and updates form data state
+   * @param {Event} e - The input change event
+   * @returns {void}
+   */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -33,10 +39,18 @@ function Signup() {
     }));
   };
 
+  /**
+   * Toggles password visibility between text and password input types
+   * @returns {void}
+   */
   const togglePasswordVisibility = () => {
     setShowPassword(prev => !prev);
   };
 
+  /**
+   * Initiates Google OAuth authentication flow
+   * @returns {void}
+   */
   const handleGoogleSignup = () => {
     try {
       setError('');
@@ -46,6 +60,10 @@ function Signup() {
     }
   };
 
+  /**
+   * Initiates GitHub OAuth authentication flow
+   * @returns {void}
+   */
   const handleGitHubSignup = () => {
     try {
       setError('');
@@ -55,22 +73,47 @@ function Signup() {
     }
   };
 
-  const validateForm = () => {
+  /**
+   * Validates first name field
+   * @returns {boolean} True if valid, false otherwise
+   */
+  const validateFirstName = () => {
     if (!formData.firstName.trim()) {
       setError('First name is required');
       return false;
     }
-    
+    return true;
+  };
+
+  /**
+   * Validates last name field
+   * @returns {boolean} True if valid, false otherwise
+   */
+  const validateLastName = () => {
     if (!formData.lastName.trim()) {
       setError('Last name is required');
       return false;
     }
-    
+    return true;
+  };
+
+  /**
+   * Validates email field
+   * @returns {boolean} True if valid, false otherwise
+   */
+  const validateEmail = () => {
     if (!formData.email.trim()) {
       setError('Email is required');
       return false;
     }
-    
+    return true;
+  };
+
+  /**
+   * Validates password field including length requirements
+   * @returns {boolean} True if valid, false otherwise
+   */
+  const validatePassword = () => {
     if (!formData.password) {
       setError('Password is required');
       return false;
@@ -84,6 +127,36 @@ function Signup() {
     return true;
   };
 
+  /**
+   * Validates all form fields by calling individual validation methods
+   * @returns {boolean} True if all fields are valid, false otherwise
+   */
+  const validateForm = () => {
+    return validateFirstName() && 
+           validateLastName() && 
+           validateEmail() && 
+           validatePassword();
+  };
+
+  /**
+   * Transforms form data into the format expected by the auth service
+   * @returns {Object} User data object for signup request
+   */
+  const transformUserData = () => {
+    return {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      confirm_password: formData.password
+    };
+  };
+
+  /**
+   * Handles form submission and user signup process
+   * @param {Event} e - The form submit event
+   * @returns {Promise<void>}
+   */
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
@@ -95,16 +168,8 @@ function Signup() {
     setIsLoading(true);
 
     try {
-      const userData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        confirm_password: formData.password
-      };
-
+      const userData = transformUserData();
       await authService.signup(userData);
-      
       navigate('/home');
     } catch (error) {
       setError(error.message || 'Signup failed. Please try again.');
@@ -113,6 +178,10 @@ function Signup() {
     }
   };
 
+  /**
+   * Navigates to the login page
+   * @returns {void}
+   */
   const handleLogin = () => {
     navigate('/login', { state: { direction: 'back' } });
   };
