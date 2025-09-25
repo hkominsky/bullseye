@@ -86,7 +86,7 @@ def get_or_create_oauth_user(user_info: OAuthUserInfo, db: Session):
             email=user_info.email,
             first_name=user_info.first_name,
             last_name=user_info.last_name,
-            hashed_password="",  # OAuth users don't have passwords
+            hashed_password="",
             oauth_provider=user_info.provider,
             oauth_provider_id=user_info.provider_id
         )
@@ -94,7 +94,6 @@ def get_or_create_oauth_user(user_info: OAuthUserInfo, db: Session):
         db.commit()
         db.refresh(user)
     else:
-        # Update existing user with OAuth info if not already set
         if not user.oauth_provider:
             user.oauth_provider = user_info.provider
             user.oauth_provider_id = user_info.provider_id

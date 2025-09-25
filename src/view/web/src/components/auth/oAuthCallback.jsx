@@ -33,7 +33,7 @@ function OAuthCallback() {
 
         setStatus('authenticating');
 
-        const user = await authService.processOAuthCallback(token, provider);
+        await authService.processOAuthCallback(token, provider);
         
         setStatus('success');
         
@@ -53,73 +53,142 @@ function OAuthCallback() {
     handleCallback();
   }, [searchParams, navigate]);
 
-  const getStatusMessage = () => {
-    switch (status) {
-      case 'processing':
-        return 'Processing authentication...';
-      case 'authenticating':
-        return 'Authenticating with OAuth provider...';
-      case 'success':
-        return 'Authentication successful! Redirecting...';
-      case 'error':
-        return 'Authentication failed. Redirecting to login...';
-      default:
-        return 'Processing...';
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'success':
-        return '#7dca9c';
-      case 'error':
-        return '#e74c3c';
-      default:
-        return '#6c757d';
-    }
-  };
-
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f8f9fa'
-    }}>
-      <div style={{
-        textAlign: 'center',
-        padding: '2rem',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        minWidth: '300px'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: `3px solid ${getStatusColor()}`,
-          borderTop: '3px solid transparent',
-          borderRadius: '50%',
-          animation: status === 'error' || status === 'success' ? 'none' : 'spin 1s linear infinite',
-          margin: '0 auto 1rem'
-        }}></div>
+    <div className="oauth-callback-container">
+      <div className="oauth-callback-content">
+        {/* Loading Spinner */}
+        <div className={`loading-spinner ${status}`}>
+          <div className="spinner"></div>
+        </div>
         
-        <p style={{ 
-          color: getStatusColor(),
-          fontSize: '16px',
-          margin: 0 
-        }}>
-          {getStatusMessage()}
-        </p>
+        {/* Status Icon */}
+        {status === 'success' && (
+          <div className="status-icon success">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        )}
         
-        <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+        {status === 'error' && (
+          <div className="status-icon error">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .oauth-callback-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+        }
+
+        .oauth-callback-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+
+        .loading-spinner {
+          width: 60px;
+          height: 60px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .spinner {
+          width: 60px;
+          height: 60px;
+          border: 3px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: #ffffff;
+          animation: spin 1s ease-in-out infinite;
+        }
+
+        .loading-spinner.success .spinner,
+        .loading-spinner.error .spinner {
+          display: none;
+        }
+
+        .status-icon {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .status-icon.success {
+          background-color: rgba(125, 202, 156, 0.2);
+          color: #7dca9c;
+          border: 2px solid #7dca9c;
+        }
+
+        .status-icon.error {
+          background-color: rgba(231, 76, 60, 0.2);
+          color: #e74c3c;
+          border: 2px solid #e74c3c;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        /* Add some subtle floating animation */
+        .oauth-callback-content {
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+      `}</style>
     </div>
   );
 }

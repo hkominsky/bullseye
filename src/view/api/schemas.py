@@ -20,6 +20,10 @@ class UserResponse(BaseModel):
     last_name: str
     is_active: bool
     created_at: datetime
+    updated_at: datetime
+    oauth_provider: Optional[str] = None
+    oauth_provider_id: Optional[str] = None
+    tickers: Optional[str] = None
     
     class Config:
         from_attributes = True
