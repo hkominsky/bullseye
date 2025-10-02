@@ -1,6 +1,5 @@
 import sys
 from dotenv import load_dotenv
-
 from src.model.data_pipeline.data_manager import DataManager
 from src.model.utils.env_validation import EnvValidation, EnvValidationError
 from src.model.utils.logger_config import LoggerSetup
