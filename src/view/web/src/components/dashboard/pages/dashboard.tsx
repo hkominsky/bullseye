@@ -8,6 +8,9 @@ import { StockService } from '../../../services/stocks.ts';
 import { EmailService } from '../../../services/emails.ts';
 import { ToastProvider, useToast } from '../widgets/toast-context.tsx';
 
+/**
+ * Dashboard content component with toast functionality.
+ */
 const DashboardContent: React.FC = () => {
   const { showToast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -16,6 +19,9 @@ const DashboardContent: React.FC = () => {
   const [reserveStocks, setReserveStocks] = useState<Stock[]>([]);
   const [isEmailProcessing, setIsEmailProcessing] = useState(false);
 
+  /**
+   * Load initial stocks on component mount from database.
+   */
   useEffect(() => {
     const loadInitialStocks = async () => {
       try {
@@ -45,6 +51,11 @@ const DashboardContent: React.FC = () => {
     loadInitialStocks();
   }, []);
 
+  /**
+   * Handles adding a new stock to the watchlist and database.
+   * 
+   * @param ticker - The stock ticker symbol to add.
+   */
   const handleAddStock = async (ticker: string): Promise<void> => {
     if (ownedStocks.some(s => s.symbol === ticker)) {
       return;
@@ -60,6 +71,11 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Handles adding a new stock to the reserve list and database.
+   * 
+   * @param ticker - The stock ticker symbol to add.
+   */
   const handleAddReserveStock = async (ticker: string): Promise<void> => {
     if (reserveStocks.some(s => s.symbol === ticker)) {
       return;
@@ -75,6 +91,11 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Removes a stock from the watchlist and database.
+   * 
+   * @param symbol - The stock symbol to remove from the watchlist.
+   */
   const removeStock = async (symbol: string): Promise<void> => {
     try {
       await StockService.removeFromWatchlist(symbol);
@@ -84,6 +105,11 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Removes a stock from the reserve list and database.
+   * 
+   * @param symbol - The stock symbol to remove from the reserve list.
+   */
   const removeReserveStock = async (symbol: string): Promise<void> => {
     try {
       await StockService.removeFromReserve(symbol);
@@ -93,6 +119,11 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Moves a stock from the watchlist to the reserve list in both UI and database.
+   * 
+   * @param symbol - The stock symbol to move.
+   */
   const moveToReserve = async (symbol: string): Promise<void> => {
     const stock = ownedStocks.find(s => s.symbol === symbol);
     if (stock) {
@@ -106,6 +137,11 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Moves a stock from the reserve list to the watchlist in both UI and database.
+   * 
+   * @param symbol - The stock symbol to move.
+   */
   const moveToWatchlist = async (symbol: string): Promise<void> => {
     const stock = reserveStocks.find(s => s.symbol === symbol);
     if (stock) {
@@ -119,6 +155,9 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Handles sending automated emails for all stocks in watchlist.
+   */
   const handleEmailAll = async (): Promise<void> => {
     if (ownedStocks.length === 0) {
       showToast('Watchlist is empty. Add stocks before sending emails.', 'error');
@@ -138,6 +177,9 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Handles sending email for a single stock.
+   */
   const handleSingleEmail = async (symbol: string): Promise<void> => {
     setIsEmailProcessing(true);
 
@@ -152,18 +194,30 @@ const DashboardContent: React.FC = () => {
     }
   };
 
+  /**
+   * Toggles the add stock form by flipping showAddForm state.
+   */
   const openAddForm = (): void => {
     setShowAddForm(prev => !prev);
   };
 
+  /**
+   * Cancels and closes the add stock form by setting showAddForm to false.
+   */
   const cancelAddForm = (): void => {
     setShowAddForm(false);
   };
 
+  /**
+   * Toggles the reserve add stock form by flipping showReserveAddForm state.
+   */
   const openReserveAddForm = (): void => {
     setShowReserveAddForm(prev => !prev);
   };
 
+  /**
+   * Cancels and closes the reserve add stock form by setting showReserveAddForm to false.
+   */
   const cancelReserveAddForm = (): void => {
     setShowReserveAddForm(false);
   };
@@ -205,6 +259,9 @@ const DashboardContent: React.FC = () => {
   );
 };
 
+/**
+ * Dashboard component wrapped with ToastProvider.
+ */
 const Dashboard: React.FC = () => {
   return (
     <ToastProvider>
