@@ -2,17 +2,15 @@ import { User, SignupData, LoginCredentials, AuthResponse, TokenData, ApiErrorRe
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-/**
- * Authentication service that upports automatic token refresh, session management, and proper logout handling.
- */
 class AuthService {
   private token: string | null = null;
   private tokenExpiry: number | null = null;
   private rememberMe: boolean = false;
+  private currentUserEmail: string | null = null;
   private sessionTimeout?: ReturnType<typeof setTimeout>;
   private refreshTimer?: ReturnType<typeof setTimeout>;
-  private readonly TOKEN_KEY = 'bullseye_auth_data';
-  private readonly USER_KEY = 'bullseye_user_data';
+  private readonly TOKEN_KEY_PREFIX = 'bullseye_auth_data';
+  private readonly USER_KEY_PREFIX = 'bullseye_user_data';
   private readonly REFRESH_THRESHOLD = 5 * 60 * 1000;
 
   constructor() {
@@ -21,25 +19,62 @@ class AuthService {
     this.scheduleTokenRefresh();
   }
 
-  /**
-   * Initializes authentication state from stored data in localStorage or sessionStorage.
-   */
-  private initializeFromStorage(): void {
-    const tokenData = this.getStoredTokenData();
-    if (tokenData) {
-      this.token = tokenData.access_token;
-      this.tokenExpiry = tokenData.expires_at;
-      this.rememberMe = tokenData.remember_me;
-      
-      if (Date.now() >= tokenData.expires_at) {
-        this.clearAuthData();
-      }
+  private getTokenKey(): string {
+    return this.currentUserEmail 
+      ? `${this.TOKEN_KEY_PREFIX}_${this.currentUserEmail}`
+      : this.TOKEN_KEY_PREFIX;
+  }
+
+  private getUserKey(): string {
+    return this.currentUserEmail 
+      ? `${this.USER_KEY_PREFIX}_${this.currentUserEmail}`
+      : this.USER_KEY_PREFIX;
+  }
+
+  private extractEmailFromToken(token: string): string | null {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.sub || null;
+    } catch {
+      return null;
     }
   }
 
-  /**
-   * Sets up activity listeners for session management.
-   */
+  private getAllStoredAccounts(): string[] {
+    const accounts = new Set<string>();
+    
+    [localStorage, sessionStorage].forEach(storage => {
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key?.startsWith(this.TOKEN_KEY_PREFIX + '_')) {
+          const email = key.replace(this.TOKEN_KEY_PREFIX + '_', '');
+          accounts.add(email);
+        }
+      }
+    });
+    
+    return Array.from(accounts);
+  }
+
+  private initializeFromStorage(): void {
+    const allKeys = this.getAllStoredAccounts();
+    
+    for (const email of allKeys) {
+      this.currentUserEmail = email;
+      const tokenData = this.getStoredTokenData();
+      
+      if (tokenData && Date.now() < tokenData.expires_at) {
+        this.token = tokenData.access_token;
+        this.tokenExpiry = tokenData.expires_at;
+        this.rememberMe = tokenData.remember_me;
+        return;
+      }
+    }
+    
+    this.currentUserEmail = null;
+    this.clearAuthData();
+  }
+
   private setupActivityListeners(): void {
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     events.forEach(event => {
@@ -47,23 +82,21 @@ class AuthService {
     });
   }
 
-  /**
-   * Handles user activity events to reset session timeout.
-   */
   private handleUserActivity(): void {
     if (this.isAuthenticated() && !this.rememberMe) {
       this.resetSessionTimeout();
     }
   }
 
-  /**
-   * Stores authentication data with expiration in appropriate storage.
-   * 
-   * @param authResponse - The authentication response containing token and user data.
-   * @param remember - Whether to persist the session across browser restarts.
-   */
   private storeTokenData(authResponse: AuthResponse, remember: boolean): void {
     const expiresAt = Date.now() + (30 * 60 * 1000);
+    
+    const email = this.extractEmailFromToken(authResponse.access_token);
+    if (!email) {
+      throw new Error('Invalid token: cannot extract user email');
+    }
+    
+    this.currentUserEmail = email;
     
     const tokenData: TokenData = {
       access_token: authResponse.access_token,
@@ -73,14 +106,10 @@ class AuthService {
     };
 
     const storage = remember ? localStorage : sessionStorage;
-    const oppositeStorage = remember ? sessionStorage : localStorage;
     
     try {
-      storage.setItem(this.TOKEN_KEY, JSON.stringify(tokenData));
-      storage.setItem(this.USER_KEY, JSON.stringify(authResponse.user));
-      
-      oppositeStorage.removeItem(this.TOKEN_KEY);
-      oppositeStorage.removeItem(this.USER_KEY);
+      storage.setItem(this.getTokenKey(), JSON.stringify(tokenData));
+      storage.setItem(this.getUserKey(), JSON.stringify(authResponse.user));
       
       this.token = authResponse.access_token;
       this.tokenExpiry = expiresAt;
@@ -93,25 +122,17 @@ class AuthService {
     }
   }
 
-  /**
-   * Retrieves stored token data from localStorage or sessionStorage.
-   * 
-   * @returns The stored token data, or null if not found or invalid.
-   */
   private getStoredTokenData(): TokenData | null {
     try {
-      const stored = localStorage.getItem(this.TOKEN_KEY) || sessionStorage.getItem(this.TOKEN_KEY);
+      const stored = localStorage.getItem(this.getTokenKey()) || 
+                    sessionStorage.getItem(this.getTokenKey());
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
       console.error('Failed to parse stored token data:', error);
-      this.clearAuthData();
       return null;
     }
   }
 
-  /**
-   * Schedules automatic token refresh before expiration.
-   */
   private scheduleTokenRefresh(): void {
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
@@ -133,9 +154,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Handles token expiration by clearing authentication data and dispatching an event.
-   */
   private handleTokenExpiration(): void {
     this.clearAuthData();
     window.dispatchEvent(new CustomEvent('tokenExpired', {
@@ -145,18 +163,18 @@ class AuthService {
     window.location.href = '/login';
   }
 
-  /**
-   * Clears all authentication data from memory and storage.
-   */
   private clearAuthData(): void {
+    if (this.currentUserEmail) {
+      localStorage.removeItem(this.getTokenKey());
+      localStorage.removeItem(this.getUserKey());
+      sessionStorage.removeItem(this.getTokenKey());
+      sessionStorage.removeItem(this.getUserKey());
+    }
+    
     this.token = null;
     this.tokenExpiry = null;
     this.rememberMe = false;
-    
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    sessionStorage.removeItem(this.TOKEN_KEY);
-    sessionStorage.removeItem(this.USER_KEY);
+    this.currentUserEmail = null;
     
     if (this.sessionTimeout) {
       clearTimeout(this.sessionTimeout);
@@ -168,11 +186,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Retrieves the current authentication token.
-   * 
-   * @returns The current authentication token, or null if not authenticated or expired.
-   */
   getToken(): string | null {
     if (this.tokenExpiry && Date.now() >= this.tokenExpiry) {
       this.handleTokenExpiration();
@@ -181,34 +194,16 @@ class AuthService {
     return this.token;
   }
 
-  /**
-   * Checks if the user is currently authenticated with a valid token.
-   * 
-   * @returns True if the user has a valid authentication token, false otherwise.
-   */
   isAuthenticated(): boolean {
     const token = this.getToken();
     return token !== null;
   }
 
-  /**
-   * Determines if the authentication token needs to be refreshed.
-   * 
-   * @returns True if the token should be refreshed, false otherwise.
-   */
   shouldRefreshToken(): boolean {
     if (!this.tokenExpiry || !this.isAuthenticated()) return false;
     return Date.now() >= (this.tokenExpiry - this.REFRESH_THRESHOLD);
   }
 
-  /**
-   * Registers a new user account with the provided signup data.
-   * 
-   * @param userData - The user registration data including email, password, and name.
-   * @param rememberMe - Whether to persist the session across browser restarts. Defaults to false.
-   * @returns A promise that resolves to the authentication response containing token and user data.
-   * @throws Error if signup fails or the server returns an error.
-   */
   async signup(userData: SignupData, rememberMe: boolean = false): Promise<AuthResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/signup`, {
@@ -238,13 +233,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Authenticates a user with the provided credentials.
-   * 
-   * @param credentials - The login credentials including email, password, and optional rememberMe flag.
-   * @returns A promise that resolves to the authentication response containing token and user data.
-   * @throws Error if login fails or credentials are invalid.
-   */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const { email, password, rememberMe = false } = credentials;
@@ -276,12 +264,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Refreshes the authentication token before it expires.
-   * 
-   * @returns A promise that resolves to the new access token.
-   * @throws Error if no token exists or refresh fails.
-   */
   async refreshToken(): Promise<string> {
     try {
       const currentToken = this.getToken();
@@ -321,15 +303,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Processes the OAuth callback after successful authentication with a third-party provider.
-   * 
-   * @param token - The authentication token received from the OAuth provider.
-   * @param provider - The name of the OAuth provider (e.g., 'google', 'github').
-   * @param rememberMe - Whether to persist the session across browser restarts. Defaults to false.
-   * @returns A promise that resolves to the authenticated user's data.
-   * @throws Error if no token is received or user data cannot be retrieved.
-   */
   async processOAuthCallback(token: string, provider: string, rememberMe: boolean = false): Promise<User> {
     try {
       if (!token) {
@@ -361,12 +334,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Fetches the current user's information from the server.
-   * 
-   * @returns A promise that resolves to the current user's data.
-   * @throws Error if no token exists, the request fails, or the user is unauthorized.
-   */
   async getCurrentUser(): Promise<User> {
     try {
       const token = this.getToken();
@@ -392,7 +359,7 @@ class AuthService {
       const user: User = await response.json();
       
       const storage = this.rememberMe ? localStorage : sessionStorage;
-      storage.setItem(this.USER_KEY, JSON.stringify(user));
+      storage.setItem(this.getUserKey(), JSON.stringify(user));
       
       return user;
     } catch (error) {
@@ -403,14 +370,10 @@ class AuthService {
     }
   }
 
-  /**
-   * Retrieves stored user data from localStorage or sessionStorage.
-   * 
-   * @returns The stored user data, or null if not found or invalid.
-   */
   getUser(): User | null {
     try {
-      const userData = localStorage.getItem(this.USER_KEY) || sessionStorage.getItem(this.USER_KEY);
+      const userData = localStorage.getItem(this.getUserKey()) || 
+                      sessionStorage.getItem(this.getUserKey());
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
       console.error('Failed to parse user data:', error);
@@ -418,9 +381,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Logs out the current user with proper cleanup.
-   */
   async logout(): Promise<void> {
     try {
       const token = this.getToken();
@@ -441,21 +401,14 @@ class AuthService {
       
       this.clearAuthData();
       
-      // Dispatch logout event
       window.dispatchEvent(new CustomEvent('userLoggedOut'));
       
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear data anyway for security
       this.clearAuthData();
     }
   }
 
-  /**
-   * Sets a session timeout for non-remembered sessions.
-   * 
-   * @param timeoutMinutes - The number of minutes before the session expires. Defaults to 30.
-   */
   setSessionTimeout(timeoutMinutes: number = 30): void {
     if (!this.rememberMe && this.isAuthenticated()) {
       const timeoutMs = timeoutMinutes * 60 * 1000;
@@ -476,9 +429,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Resets the session timeout on user activity.
-   */
   resetSessionTimeout(): void {
     if (!this.rememberMe && this.sessionTimeout) {
       clearTimeout(this.sessionTimeout);
@@ -486,27 +436,14 @@ class AuthService {
     }
   }
 
-  /**
-   * Initiates Google OAuth authentication flow.
-   */
   initiateGoogleAuth(): void {
     window.location.href = `${API_BASE_URL}/auth/google`;
   }
 
-  /**
-   * Initiates GitHub OAuth authentication flow.
-   */
   initiateGitHubAuth(): void {
     window.location.href = `${API_BASE_URL}/auth/github`;
   }
 
-  /**
-   * Sends a password reset email to the specified email address.
-   * 
-   * @param email - The email address to send the password reset link to.
-   * @returns A promise that resolves to the server response.
-   * @throws Error if the email cannot be sent or the server is unreachable.
-   */
   async resetPassword(email: string): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
@@ -532,14 +469,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Confirms a password reset using the provided token and new password.
-   * 
-   * @param token - The password reset token received via email.
-   * @param newPassword - The new password to set for the account.
-   * @returns A promise that resolves to the server response.
-   * @throws Error if the password reset fails or the token is invalid.
-   */
   async confirmPasswordReset(token: string, newPassword: string): Promise<any> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/confirm-reset-password`, {
@@ -568,9 +497,40 @@ class AuthService {
     }
   }
 
-  /**
-   * Cleans up resources when the service is destroyed.
-   */
+  getAllLoggedInAccounts(): Array<{ email: string; user: User | null }> {
+    return this.getAllStoredAccounts().map(email => ({
+      email,
+      user: this.getUserForEmail(email)
+    }));
+  }
+
+  private getUserForEmail(email: string): User | null {
+    try {
+      const key = `${this.USER_KEY_PREFIX}_${email}`;
+      const userData = localStorage.getItem(key) || sessionStorage.getItem(key);
+      return userData ? JSON.parse(userData) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  switchAccount(email: string): boolean {
+    const tempEmail = this.currentUserEmail;
+    this.currentUserEmail = email;
+    
+    const tokenData = this.getStoredTokenData();
+    if (tokenData && Date.now() < tokenData.expires_at) {
+      this.token = tokenData.access_token;
+      this.tokenExpiry = tokenData.expires_at;
+      this.rememberMe = tokenData.remember_me;
+      this.scheduleTokenRefresh();
+      return true;
+    }
+    
+    this.currentUserEmail = tempEmail;
+    return false;
+  }
+
   destroy(): void {
     if (this.sessionTimeout) {
       clearTimeout(this.sessionTimeout);
