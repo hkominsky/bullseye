@@ -11,7 +11,7 @@ class TickerMappingService:
     """
 
     SEC_TICKER_URL = "https://www.sec.gov/files/company_tickers.json"
-    DEFAULT_CACHE_FILE = os.path.join("src", "model", "data_pipeline", "data_aggregator", "edgar_data_filings", "ticker_retriever", "company_tickers.json")
+    DEFAULT_CACHE_FILE = os.path.join("src", "model", "data_pipeline", "data_aggregator", "sec", "ticker_retriever", "company_tickers.json")
     DEFAULT_REFRESH_DAYS = 30
 
     def __init__(self, http_client: HttpClient, cache: CacheInterface):
