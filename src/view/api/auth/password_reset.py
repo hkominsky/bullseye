@@ -11,8 +11,14 @@ from config.database import get_db, User
 from auth.security import get_password_hash
 from config.schemas import PasswordResetRequest, PasswordResetResponse, PasswordResetConfirm
 
-send_grid = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
 router = APIRouter()
+
+def get_sendgrid_client() -> SendGridAPIClient:
+    """Get SendGrid client with API key from environment."""
+    api_key = os.getenv('SENDGRID_API_KEY')
+    if not api_key:
+        raise ValueError("SENDGRID_API_KEY environment variable not set")
+    return SendGridAPIClient(api_key=api_key)
 
 def generate_reset_token() -> tuple[str, str]:
     """Generate a reset token and its hash."""
@@ -121,7 +127,7 @@ def create_reset_email_content(reset_url: str) -> tuple[str, str]:
                 <p class="email-text">If you didn't request this reset, please ignore this email.</p>
                 
                 <p style="text-align: center; margin: 30px 0;">
-                    <a href="{reset_url}" class="reset-button">Reset Password →</a>
+                    <a href="{reset_url}" class="reset-button">Reset Password</a>
                 </p>
                 
                 <p class="email-text" style="margin-top: 30px;">
@@ -151,17 +157,23 @@ def create_reset_email_content(reset_url: str) -> tuple[str, str]:
 
 def send_reset_email(email: str, reset_url: str) -> None:
     """Send password reset email via SendGrid."""
-    html_content, text_content = create_reset_email_content(reset_url)
-    
-    message = Mail(
-        from_email=os.getenv('SENDER_EMAIL'),
-        to_emails=email,
-        subject='Reset Password',
-        html_content=html_content,
-        plain_text_content=text_content
-    )
-    
-    send_grid.send(message)
+    try:
+        send_grid = get_sendgrid_client()
+        html_content, text_content = create_reset_email_content(reset_url)
+        
+        message = Mail(
+            from_email=os.getenv('SENDER_EMAIL'),
+            to_emails=email,
+            subject='Reset Password',
+            html_content=html_content,
+            plain_text_content=text_content
+        )
+        
+        response = send_grid.send(message)
+        print(f"SendGrid response status: {response.status_code}")
+    except Exception as e:
+        print(f"SendGrid error: {e}")
+        raise
 
 def find_user_by_reset_token(token: str, db: Session) -> User:
     """Find user by valid reset token."""
@@ -222,3 +234,28 @@ def confirm_reset_password(request: PasswordResetConfirm, db: Session = Depends(
     except Exception as e:
         print(f"Password reset confirm error: {e}")
         raise HTTPException(status_code=500, detail="Failed to reset password")
+    
+@router.get("/test-sendgrid")
+def test_sendgrid():
+    """Debug endpoint to test SendGrid configuration."""
+    api_key = os.getenv('SENDGRID_API_KEY')
+    sender = os.getenv('SENDER_EMAIL')
+    
+    if not api_key:
+        return {"error": "SENDGRID_API_KEY not found in environment"}
+    
+    if not sender:
+        return {"error": "SENDER_EMAIL not found in environment"}
+    
+    try:
+        sg = get_sendgrid_client()
+        message = Mail(
+            from_email=sender,
+            to_emails=sender,  # Send to yourself for testing
+            subject='Test',
+            html_content='<strong>Test email</strong>'
+        )
+        response = sg.send(message)
+        return {"status": "success", "status_code": response.status_code}
+    except Exception as e:
+        return {"error": str(e)}

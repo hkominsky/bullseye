@@ -3,12 +3,12 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
   oauth_provider?: string | null;
   oauth_provider_id?: string | null;
-  tickers?: string | null;
+  watchlist_tickers?: string | null;
+  reserve_tickers?: string | null;
 }
 
 export interface SignupData {

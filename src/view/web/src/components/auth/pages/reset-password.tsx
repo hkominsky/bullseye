@@ -115,8 +115,8 @@ function ResetPassword() {
   /**
    * Navigates back to the login page.
    */
-  const handleBack = (): void => {
-    navigate('/login', { state: { direction: 'back' } });
+  const handleGoToLogin = (): void => {
+    navigate('/login');
   };
 
   /**
@@ -147,14 +147,13 @@ function ResetPassword() {
       <AuthLayout
         title="Check Your Email"
         description={`We've sent a password reset link to ${email}.`}
-        showBackButton={false}
         error={error}
       >
         <div className="auth-form">
           <button 
             type="button" 
             className="auth-button" 
-            onClick={handleBack}
+            onClick={handleGoToLogin}
             disabled={isLoading}
             aria-label="Back"
           >
@@ -181,9 +180,8 @@ function ResetPassword() {
 
   return (
     <AuthLayout
-      title="Forgot Password"
-      description="Enter your email address and we'll send you a link to reset your password."
-      showBackButton={true}
+      title="Forgot Password?"
+      description="Enter your email address and we'll send you a reset link."
       error={error}
     >
       <form className="auth-form" onSubmit={handleResetPassword}>
@@ -209,6 +207,10 @@ function ResetPassword() {
           Send Email
         </button>
       </form>
+
+      <p className="auth-footer-text">
+        Remember your password? <span className="auth-color-link" onClick={handleGoToLogin}>Back to Login</span>
+      </p>
     </AuthLayout>
   );
 }

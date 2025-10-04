@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import Login from './components/auth/pages/login.tsx';
 import SignUp from './components/auth/pages/signup.tsx';
 import ResetPassword from './components/auth/pages/reset-password.tsx';
+import ResetPasswordConfirm from './components/auth/pages/reset-password-confirm.tsx';
 import OAuthCallback from './components/auth/widgets/oauth-callback.tsx';
 import Dashboard from './components/dashboard/pages/dashboard.tsx';
 import { ProtectedRoute } from './components/auth/widgets/protected-route.tsx';
@@ -15,7 +16,7 @@ import { ProtectedRoute } from './components/auth/widgets/protected-route.tsx';
 function AppRoutes() {
   const location = useLocation();
   
-  const animatedRoutes: string[] = ['/login', '/signup', '/reset-password'];
+  const animatedRoutes: string[] = ['/login', '/signup', '/reset-password', '/reset-password-confirm'];
   const shouldAnimate: boolean = animatedRoutes.includes(location.pathname);
   
   if (location.pathname === '/auth/callback') {
@@ -33,6 +34,7 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
         </Routes>
       </AnimatePresence>
     );

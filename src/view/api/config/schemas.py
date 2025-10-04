@@ -18,7 +18,6 @@ class UserResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
-    is_active: bool
     created_at: datetime
     updated_at: datetime
     oauth_provider: Optional[str] = None

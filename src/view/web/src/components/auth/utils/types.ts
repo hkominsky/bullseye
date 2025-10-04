@@ -1,3 +1,5 @@
+import { ReactNode } from 'react';
+
 export interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -29,4 +31,11 @@ export interface UserData {
   email: string;
   password: string;
   confirm_password: string;
+}
+
+export interface AuthLayoutProps {
+  title: string;
+  description: string;
+  children: ReactNode;
+  error?: string;
 }
