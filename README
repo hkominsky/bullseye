@@ -1,14 +1,133 @@
-Back End -
-    Manual:
-    python -m src.controller.manual
+# Bullseye
 
-Front End -
+Market Brief is a full-stack application built with a **FastAPI (Python)** backend and a **React (TypeScript)** frontend, designed to provide simplified yet comprehensive financial analysis for selected stock tickers. The platform combines real-time data processing, sentiment analysis, and automated reporting to deliver actionable insights.
 
-    FastAPI Startup:
-    cd src/view/api
-    uvicorn main:app --reload
+---
 
-    React Startup:
-    cd src/view/web
-    npm start
+## Overview
+Market Brief is a full stack solution to providing simplified comprehensive financial analysis for specified stock tickers.
 
+This involves aggregating company financials, calculating key financial ratios, compiling recent news articles, analyzing corporate and retail sentiment, evaluating sector performance, and generating annual stock performance charts.
+
+Each report is formatted and sent as an automated email using SendGrid, with all underlying data stored in a PostgreSQL database.
+
+A FastAPI backend and React frontend provide user authentication, mailing list management, and customizable ticker updates.
+---
+
+## Tech Stack
+
+### Frontend
+- React 19 with TypeScript  
+- React Router DOM for navigation  
+- Framer Motion for animations  
+- React Testing Library for testing  
+
+### Backend
+- Python 3.x  
+- FastAPI for API development  
+- SQLAlchemy for ORM  
+- Alembic for database migrations  
+- PostgreSQL database  
+
+### Key Libraries
+- pandas, numpy for data processing  
+- plotly for visualizations  
+- tweepy for Twitter integration  
+- yfinance for financial data  
+- selenium for web scraping  
+- sendgrid for email services  
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Python 3.8 or higher  
+- Node.js 14 or higher  
+- PostgreSQL database  
+- npm  
+
+---
+
+### Installation
+
+#### 1. Clone the repository
+\`\`\`bash
+git clone https://github.com/hkominsky/bullseye.git
+cd bullseye
+\`\`\`
+
+#### 2. Backend Setup
+\`\`\`bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+\`\`\`
+
+#### 3. Frontend Setup
+\`\`\`bash
+cd src/view/web
+npm install
+\`\`\`
+
+#### 4. Database Setup
+\`\`\`bash
+alembic upgrade head
+\`\`\`
+
+---
+
+## Running the Application
+
+### Backend (FastAPI)
+\`\`\`bash
+cd src/view/api
+uvicorn main:app --reload
+\`\`\`
+The API will be available at:  
+\`http://localhost:8000\`
+
+---
+
+### Frontend (React)
+\`\`\`bash
+cd src/view/web
+npm start
+\`\`\`
+The app will be available at:  
+\`http://localhost:3000\`
+
+---
+
+### Manual Controller
+\`\`\`bash
+python -m src.controller.manual
+\`\`\`
+
+---
+
+## Features
+
+- User authentication with JWT  
+- Real-time data updates  
+- Interactive data visualizations with Plotly  
+- Social media integration (Twitter)  
+- Financial data analysis (Yahoo Finance)  
+- Email notifications  
+- Responsive UI with smooth animations  
+
+---
+
+## Testing
+\`\`\`bash
+# TODO
+\`\`\`
+
+---
+
+## Contact
+
+For questions or feedback, contact:  
+**hugh.kominsky@gmail.com**
