@@ -1,133 +1,103 @@
-# Bullseye
+OVERVIEW
 
-Market Brief is a full-stack application built with a **FastAPI (Python)** backend and a **React (TypeScript)** frontend, designed to provide simplified yet comprehensive financial analysis for selected stock tickers. The platform combines real-time data processing, sentiment analysis, and automated reporting to deliver actionable insights.
+Bullseye is a full-stack application built with a FastAPI (Python) backend and a React (TypeScript) frontend.
 
----
+The program aggregates company financials, calculates key ratios, compiles recent news articles, analyzes corporate and retail sentiment, evaluates sector performance, and generates annual stock performance charts.
 
-## Overview
-Market Brief is a full stack solution to providing simplified comprehensive financial analysis for specified stock tickers.
+Reports are formatted and sent as emails using SendGrid, with all data stored in a PostgreSQL database. A FastAPI backend and React frontend provide user authentication, mailing list management, and customizable ticker updates.
 
-This involves aggregating company financials, calculating key financial ratios, compiling recent news articles, analyzing corporate and retail sentiment, evaluating sector performance, and generating annual stock performance charts.
+Users are able to create an account and manage the stocks they want the analysis for, as well as mass or individually sending themselves the overview emails.
 
-Each report is formatted and sent as an automated email using SendGrid, with all underlying data stored in a PostgreSQL database.
+TECH STACK
 
-A FastAPI backend and React frontend provide user authentication, mailing list management, and customizable ticker updates.
----
+Frontend:
+- React 19 with TypeScript
+- React Router DOM for navigation
+- Framer Motion for animations
+- React Testing Library for testing
 
-## Tech Stack
+Backend:
+- Python 3.x
+- FastAPI for API development
+- SQLAlchemy for ORM
+- Alembic for database migrations
+- PostgreSQL database
 
-### Frontend
-- React 19 with TypeScript  
-- React Router DOM for navigation  
-- Framer Motion for animations  
-- React Testing Library for testing  
+Key Libraries:
+- pandas, numpy for data processing
+- plotly for visualizations
+- tweepy for Twitter integration
+- yfinance for financial data
+- selenium for web scraping
+- sendgrid for email services
 
-### Backend
-- Python 3.x  
-- FastAPI for API development  
-- SQLAlchemy for ORM  
-- Alembic for database migrations  
-- PostgreSQL database  
+GETTING STARTED
 
-### Key Libraries
-- pandas, numpy for data processing  
-- plotly for visualizations  
-- tweepy for Twitter integration  
-- yfinance for financial data  
-- selenium for web scraping  
-- sendgrid for email services  
+Prerequisites:
+- Python 3.8 or higher
+- Node.js 14 or higher
+- PostgreSQL database
+- npm package manager
 
----
+Installation:
 
-## Getting Started
+1. Clone the repository
+   git clone https://github.com/hkominsky/bullseye.git
+   cd bullseye
 
-### Prerequisites
-- Python 3.8 or higher  
-- Node.js 14 or higher  
-- PostgreSQL database  
-- npm  
+2. Backend Setup
+   pip install -r requirements.txt
+   cp .env.example .env
+   (Edit .env with your configuration)
 
----
+3. Frontend Setup
+   cd src/view/web
+   npm install
 
-### Installation
+4. Database Setup
+   alembic upgrade head
 
-#### 1. Clone the repository
-\`\`\`bash
-git clone https://github.com/hkominsky/bullseye.git
-cd bullseye
-\`\`\`
+RUNNING THE APPLICATION
 
-#### 2. Backend Setup
-\`\`\`bash
-# Install Python dependencies
-pip install -r requirements.txt
+Backend (FastAPI):
+   cd src/view/api
+   uvicorn main:app --reload
+   
+   API available at: http://localhost:8000
 
-# Set up environment variables
-cp .env.example .env
-\`\`\`
+Frontend (React):
+   cd src/view/web
+   npm start
+   
+   App available at: http://localhost:3000
 
-#### 3. Frontend Setup
-\`\`\`bash
-cd src/view/web
-npm install
-\`\`\`
+Manual Controller:
+   python -m src.controller.manual
 
-#### 4. Database Setup
-\`\`\`bash
-alembic upgrade head
-\`\`\`
 
----
+FEATURES
 
-## Running the Application
+- User authentication with JWT
+- Real-time data updates
+- Interactive data visualizations with Plotly
+- Social media integration (Twitter)
+- Financial data analysis (Yahoo Finance)
+- Email notifications via SendGrid
+- Responsive UI with smooth animations
+- Automated stock analysis reports
+- Sentiment analysis of corporate and retail sentiment
+- Sector performance evaluation
 
-### Backend (FastAPI)
-\`\`\`bash
-cd src/view/api
-uvicorn main:app --reload
-\`\`\`
-The API will be available at:  
-\`http://localhost:8000\`
+DEVELOPMENT
 
----
+Run Tests:
+   Frontend tests:
+      (TODO)
+   
+   Backend tests:
+      (TODO)
 
-### Frontend (React)
-\`\`\`bash
-cd src/view/web
-npm start
-\`\`\`
-The app will be available at:  
-\`http://localhost:3000\`
+CONTACT
 
----
-
-### Manual Controller
-\`\`\`bash
-python -m src.controller.manual
-\`\`\`
-
----
-
-## Features
-
-- User authentication with JWT  
-- Real-time data updates  
-- Interactive data visualizations with Plotly  
-- Social media integration (Twitter)  
-- Financial data analysis (Yahoo Finance)  
-- Email notifications  
-- Responsive UI with smooth animations  
-
----
-
-## Testing
-\`\`\`bash
-# TODO
-\`\`\`
-
----
-
-## Contact
-
-For questions or feedback, contact:  
-**hugh.kominsky@gmail.com**
+For questions or feedback, contact:
+hugh.kominsky@gmail.com
