@@ -92,10 +92,12 @@ DEVELOPMENT
 
 Run Tests:
    Frontend tests:
-      (TODO)
+      cd src/view/web
+      npm start
    
    Backend tests:
-      (TODO)
+      cd src/tests
+      pytest
 
 CONTACT
 

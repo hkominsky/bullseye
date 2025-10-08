@@ -9,7 +9,7 @@ from src.model.utils.logger_config import LoggerSetup
 
 class SECDataProcessor:
     """
-    Enhanced processor for SEC financial data that incorporates stock price data
+    Processor for SEC financial data that incorporates stock price data
     to calculate comprehensive valuation and market-based metrics.
     """
     

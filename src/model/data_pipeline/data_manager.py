@@ -36,17 +36,13 @@ class DataManager:
 
     def _initialize_services(self, user_agent: str) -> None:
         """Initialize all required services and components."""
-        # HTTP and caching services
         self.http_client = HttpClient(user_agent)
         self.cache = FileCache()
         
-        # Data processing services
         self._initialize_data_processors()
         
-        # Analysis services
         self._initialize_analyzers()
         
-        # Database and notification services
         self._initialize_infrastructure()
 
     def _initialize_data_processors(self) -> None:
@@ -233,7 +229,7 @@ class DataManager:
     def _handle_processing_failure(self, ticker: str, start_time: datetime, stage: str, error_message: str) -> None:
         """Handle processing failures with logging."""
         self._log_failed_processing(ticker, start_time, stage, error_message)
-        if stage != "VALIDATION_FAILED":  # Don't raise for validation failures
+        if stage != "VALIDATION_FAILED":
             raise Exception(f"Processing failed at {stage}: {error_message}")
 
     def process_ticker(self, ticker: str, progress_tracker: ProgressTracker) -> None:
@@ -248,13 +244,11 @@ class DataManager:
             progress_tracker.total_steps = len(progress_steps)
         
         try:
-            # Collect all data
             data_package, success = self.collect_all_ticker_data(ticker, progress_tracker)
             if not success:
                 self._handle_processing_failure(ticker, start_time, "DATA_COLLECTION_FAILED", "Failed to collect ticker data")
                 return
             
-            # Validate data package
             is_valid, validation_reason = self._validate_data_package(ticker, data_package)
             if not is_valid:
                 self._handle_processing_failure(ticker, start_time, "VALIDATION_FAILED", validation_reason)
@@ -262,7 +256,6 @@ class DataManager:
             
             progress_tracker.step(progress_steps[6])
             
-            # Save to database
             success, error_message = self._save_ticker_data(ticker, data_package)
             if not success:
                 self._handle_processing_failure(ticker, start_time, "DATABASE_FAILED", error_message)
@@ -270,7 +263,6 @@ class DataManager:
             
             progress_tracker.step(progress_steps[7])
             
-            # Send notification and log success
             self._send_email_and_log(ticker, data_package, start_time, progress_tracker, progress_steps)
             
         except Exception as e:

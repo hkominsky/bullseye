@@ -2,7 +2,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from config.database import get_db, User
-from config.schemas import UserCreate, UserLogin, UserResponse, Token
+from config.types import UserCreate, UserLogin, UserResponse, Token
 from auth.security import get_password_hash, verify_password, create_access_token, get_current_user
 from auth.oauth import router as oauth_router
 from auth.password_reset import router as password_reset_router

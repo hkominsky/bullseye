@@ -15,18 +15,12 @@ class Filing:
     is_amended: Optional[bool] = None
     primary_document: Optional[str] = None
 
-
-from dataclasses import dataclass
-from typing import Optional
-
 @dataclass
 class FinancialRecord:
     ticker: str
     date: str
-    period: str  # "Q1", "Q2", "Q3", "Q4", "FY"
-    form_type: str  # "10-K", "10-Q"
-    
-    # Revenue & Profitability
+    period: str
+    form_type: str
     revenue: Optional[float] = None
     cost_of_revenue: Optional[float] = None
     gross_profit: Optional[float] = None
@@ -34,8 +28,6 @@ class FinancialRecord:
     net_income: Optional[float] = None
     research_and_development: Optional[float] = None
     selling_general_admin: Optional[float] = None
-    
-    # Balance Sheet
     total_assets: Optional[float] = None
     current_assets: Optional[float] = None
     cash_and_equivalents: Optional[float] = None
@@ -46,18 +38,12 @@ class FinancialRecord:
     current_liabilities: Optional[float] = None
     long_term_debt: Optional[float] = None
     shareholders_equity: Optional[float] = None
-    
-    # Cash Flow
     operating_cash_flow: Optional[float] = None
     investing_cash_flow: Optional[float] = None
     financing_cash_flow: Optional[float] = None
     capital_expenditures: Optional[float] = None
-    
-    # Share Information
     shares_outstanding: Optional[float] = None
     weighted_average_shares: Optional[float] = None
-    
-    # Enhanced Financial Health Metrics
     working_capital: Optional[float] = None
     days_sales_outstanding: Optional[float] = None
     asset_turnover: Optional[float] = None
@@ -66,8 +52,6 @@ class FinancialRecord:
     debt_to_ebitda: Optional[float] = None
     altman_z_score: Optional[float] = None
     piotroski_f_score: Optional[float] = None
-    
-    # Calculated Metrics
     gross_margin: Optional[float] = None
     operating_margin: Optional[float] = None
     net_margin: Optional[float] = None
@@ -78,8 +62,6 @@ class FinancialRecord:
     return_on_equity: Optional[float] = None
     free_cash_flow: Optional[float] = None
     earnings_per_share: Optional[float] = None
-    
-    # Market-Based Metrics
     stock_price: Optional[float] = None
     market_cap: Optional[float] = None
     enterprise_value: Optional[float] = None
@@ -99,8 +81,6 @@ class FinancialRecord:
 class GrowthMetrics:
     ticker: str
     period: str
-    
-    # Growth rates (as percentages)
     revenue_growth_yoy: Optional[float] = None
     revenue_growth_qoq: Optional[float] = None
     net_income_growth_yoy: Optional[float] = None
@@ -108,13 +88,9 @@ class GrowthMetrics:
     operating_income_growth_yoy: Optional[float] = None
     operating_income_growth_qoq: Optional[float] = None
     eps_growth_yoy: Optional[float] = None
-    
-    # Advanced growth metrics
     revenue_growth_acceleration: Optional[float] = None
     margin_expansion_rate: Optional[float] = None
     organic_growth_rate: Optional[float] = None
-    
-    # Trend indicators
-    revenue_trend: Optional[str] = None  # "increasing", "decreasing", "stable"
+    revenue_trend: Optional[str] = None
     profitability_trend: Optional[str] = None
     efficiency_trend: Optional[str] = None

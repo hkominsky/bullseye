@@ -9,7 +9,7 @@ from sendgrid.helpers.mail import Mail
 from sqlalchemy.orm import Session
 from config.database import get_db, User
 from auth.security import get_password_hash
-from config.schemas import PasswordResetRequest, PasswordResetResponse, PasswordResetConfirm
+from config.types import PasswordResetRequest, PasswordResetResponse, PasswordResetConfirm
 
 router = APIRouter()
 

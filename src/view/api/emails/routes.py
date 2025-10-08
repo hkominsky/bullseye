@@ -5,7 +5,7 @@ import logging
 from sqlalchemy.orm import Session
 from auth.security import get_current_user
 from config.database import get_db, User
-from config.schemas import CustomEmailRequest, EmailJobResponse
+from config.types import CustomEmailRequest, EmailJobResponse
 from src.controller.emails import EmailController
 
 router = APIRouter(prefix="/api/email", tags=["email"])

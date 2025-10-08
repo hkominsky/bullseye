@@ -347,17 +347,14 @@ def verify_setup():
 def main():
     logger.info("Starting database setup for emails...")
     
-    # Test connection
     if not test_connection():
         logger.error("Database connection failed. Please check your configuration.")
         sys.exit(1)
     
-    # Create schema
     if not create_schema():
         logger.error("Schema creation failed.")
         sys.exit(1)
     
-    # Verify setup
     if not verify_setup():
         logger.error("Verification failed.")
         sys.exit(1)

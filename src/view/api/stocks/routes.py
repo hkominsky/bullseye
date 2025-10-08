@@ -5,7 +5,7 @@ from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
 from config.database import get_db, User
 from auth.security import get_current_user
-from config.schemas import StockSuggestion, StockValidationResponse, StockSearchResponse
+from config.types import StockSuggestion, StockValidationResponse, StockSearchResponse
 import pandas as pd
 
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
